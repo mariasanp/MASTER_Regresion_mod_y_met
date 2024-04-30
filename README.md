@@ -1,1 +1,1 @@
-# MASTER_Regresion_mod_y_met
+# Regresion_Modelos_y_Metodos
