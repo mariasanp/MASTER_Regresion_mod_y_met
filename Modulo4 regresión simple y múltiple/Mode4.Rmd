@@ -1,0 +1,217 @@
+---
+title: "Modulo4"
+author: "María Sánchez Paniagua"
+date: "2024-04-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# LIBRO MÓDULO 4
+
+```{r}
+heartbpm <- c(47.53, 48.27, 49.51, 51.09, 52.57, 54.30,
+54.25, 54.45, 57.95, 60.92, 61.91, 77.92,
+82.07, 82.95, 83.94, 86.96, 90.42, 92.93, 100.05)
+metabol <- c(6.15, 6.31, 6.43, 6.78, 6.86, 6.90, 7.37, 7.41,
+8.24, 9.22, 8.16, 12.61, 15.26, 13.09, 14.59,
+17.35, 18.57, 19.00, 20.70)
+vulture <- data.frame(heartbpm, metabol)
+rm(heartbpm, metabol)
+attach(vulture)
+
+library(faraway)
+
+
+treatment <- c(rep(1,20),rep(2,20))
+weightgain <- c(5,3,8,7,6,4,8,6,7,5,5,2,4,5,10,3,8,6,6,3,
+9,8,8,8,11,8,7,6,5,7,6,9,3,7,5,7,7,5,3,8)
+initial.wt <- c(21,24,21,22,23,26,22,23,24,20,
+27,28,28,30,18,27,19,20,19,22,
+18,18,19,19,19,21,20,21,23,23,
+25,25,26,24,24,25,26,27,30,29)
+goats <- data.frame(treatment, weightgain, initial.wt)
+goats$treatment <- factor(goats$treatment,
+labels = c("standard","intensive"))
+rm(treatment, weightgain, initial.wt)
+attach(goats)
+```
+
+
+```{r cars}
+
+mod <- lm(metabol ~ heartbpm, data=vulture)
+ss <- summary(mod)
+ss$sigma^2 * ss$cov.unscaled
+```
+## Intervalo para la respuesta media
+
+Predicción
+
+```{r}
+as.numeric(coef(mod)[1] + coef(mod)[2]*70)
+
+predict(mod, newdata = data.frame(heartbpm=70))
+```
+Intervalo de confianza:
+
+```{r}
+predict(mod, newdata = data.frame(heartbpm=70),
+interval = "confidence")
+```
+Añadir curvas en el gráfico del intervalo de confianza:
+
+```{r}
+library(ggplot2)
+p <- ggplot(vulture, aes(x=heartbpm, y=metabol)) +
+geom_point() + labs(x = "heart beats (per minute)",
+y = "metabolic rate [J/(g*h)]",
+title = "Griffon vulture, 1999-05-17") +
+theme_light()
+p
+p + geom_smooth(method=lm, se=TRUE)
+```
+
+## 4. Predicción de nuevas observaciones
+Intervalo de predicciones:
+
+```{r}
+predict(mod, newdata = data.frame(heartbpm=70),
+interval = "prediction")
+```
+
+Le podemos añadir los intervalos de predicción.
+
+```{r}
+pred_var <- predict(mod, interval="prediction") # Predicción usando el modelo (intervalos le predicción)
+pred_var <- pred_var[order(pred_var[,"fit"]),] # Se ordenan las predicciones según el fit
+new_df <- cbind(vulture, pred_var) # Combinar datos con predicciones
+
+# Gráfico
+ggplot(
+  new_df, 
+  aes(x=heartbpm, y=metabol)) + geom_point() + labs(x = "heart beats (per minute)",
+  y = "metabolic rate [J/(g*h)]",
+  title = "Griffon vulture, 1999-05-17") + geom_line(aes(y=lwr), # Se establecen etiquetas y eñ
+  color = "blue", linetype = "dashed") + geom_line(aes(y=upr), 
+  color = "blue", linetype = "dashed") + geom_smooth(method=lm, se=TRUE) + # linea de regresion
+  theme_light()
+```
+
+## Carácter lineal de la regresión:
+En el siguiente ejemplo tenemos datos disponibles sobre el efecto de un suplemento
+dietético en las tasas de crecimiento de unas ratas. Aquí la variable
+regresora es la dosis de suplemento dietético y la respuesta es la tasa de crecimiento.
+
+```{r}
+supplement <- c(10,10,15,15,20,20,25,25,25,30,35,35)
+rate <- c(73,78,85,88,90,91,87,86,91,75,65,63)
+g0 <- lm(rate ~ supplement)
+g <- lm(rate ~ factor(supplement))
+anova(g0,g)
+```
+En este caso hay una falta de ajuste, ya que rechazamos la hipótesis nula que
+corresponde a la regresión lineal simple.
+
+## Comparación de rectas de regresión:
+
+Si queremos estudiar contrastes sobre todos los parámetros, debemos construir
+un único modelo lineal conjunto.
+
+```{r}
+n1 <- n2 <- 20
+x1 <- c(rep(1,n1),rep(0,n2))
+x2 <- c(rep(0,n1),rep(1,n2))
+x3 <- c(initial.wt[treatment=="standard"],rep(0,n2))
+x4 <- c(rep(0,n1),initial.wt[treatment=="intensive"])
+g1 <- lm(weightgain ~ 0 + x1 + x2 + x3 + x4)
+# Modelo bajo la hipótesis del paralelismo:
+g2 <- lm(weightgain ~ 0 + x1 + x2 + I(x3 + x4))
+# Contraste
+anova(g2,g1)
+```
+Una vez aceptamos el paralelismo, el siguiente contraste es la igualdad total,
+es decir, solo tenemos una recta
+
+```{r}
+# Hipotesis solo una resta:
+g3 <- lm(weightgain ~ initial.wt)
+anova(g3,g2)
+```
+rechazamos la hipótesis H0 : α1 = α2 y los tratamientos
+dan una diferencia significativa en la ganancia de peso a lo largo de todos
+los pesos iniciales por igual.
+
+Otra forma de resolver los mismos contrastes es mediante el análisis de la covarianza
+o ANCOVA:
+
+```{r}
+g <- lm(weightgain ~ initial.wt * treatment, data=goats)
+anova(g)
+```
+La ventaja es que los contrastes de paralelismo y de coincidencia son consecutivos
+de abajo hacia arriba y en la misma tabla.
+
+## ANCOVA Carmona:
+
+https://www.ub.edu/cursosR/files/ancova.pdf
+
+# Paralelismo: y comparacion rectas de regresion
+
+```{r}
+treatment
+n1 <- n2 <- 20
+x1 <- c(rep(1,n1),rep(0,n2))
+x2 <- c(rep(0,n1),rep(1,n2))
+x3 <- c(initial.wt[treatment=="standard"],rep(0,n2))
+x3
+x4 <- c(rep(0,n1),initial.wt[treatment=="intensive"])
+x4
+g1 <- lm(weightgain ~ 0 + x1 + x2 + x3 + x4)
+plot(g1)
+#ahora el modelo bajo la hipótesis de paralelismo es
+g2 <- lm(weightgain ~ 0 + x1 + x2 + I(x3 + x4))
+#A continuación, hacemos el contraste
+anova(g2,g1)
+```
+
+Aceptamos el paralelismo y pasamos al contraste de la igualdad total:
+
+```{r}
+# Igualdad total
+g3 <- lm(weightgain ~ initial.wt)
+anova(g3,g2)
+```
+En consecuencia, rechazamos la hipótesis H0 : α1 = α2 y los tratamientos
+dan una diferencia significativa en la ganancia de peso a lo largo de todos
+los pesos iniciales por igual.
+
+# Ejemplo para reflexión
+
+Los datos de Anscombe:
+
+```{r}
+
+attach(anscombe)
+g1 <- lm(y1 ~ x1)
+g2 <- lm(y2 ~ x2)
+g3 <- lm(y3 ~ x3)
+g4 <- lm(y4 ~ x4)
+par(mfrow=c(2,2), mar=c(2,2,1,1))
+plot(x1,y1); abline(g1)
+plot(x2,y2); abline(g2)
+plot(x3,y3); abline(g3)
+plot(x4,y4); abline(g4)
+```
+
+El mensaje que se deduce de este
+ejemplo es que no podemos fiarnos del
+procedimiento de cálculo de la regresión sin un análisis más profundo de la
+validación del modelo. Esto implica un análisis de los residuos y otras técnicas
+específicas para comprobar que se verifican las condiciones ideales del
+modelo lineal.
+
+# VÍDEO MÚDULO 4
+
