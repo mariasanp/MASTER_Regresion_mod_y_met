@@ -1,0 +1,621 @@
+---
+title: "Diagnosis"
+author: "María Sánchez Paniagua"
+date: "2024-04-28"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Ejercicios del libro de Faraway
+
+## 1. (Ejercicio 1 cap. 6 pág. 97)
+Using the sat dataset, fit a model with the total SAT score as the response and expend, salary,
+ratio and takers as predictors. Perform regression diagnostics on this model to answer the following
+questions. Display any plots that are relevant. Do not provide any plots about which you have
+nothing to say. Suggest possible improvements or corrections to the model where appropriate.
+
+```{r}
+library(faraway)
+data(sat)
+dim(sat)
+model <- lm(total ~ expend + salary + ratio + takers, data = sat)
+
+summary(model)
+```
+El datasaet tiene 50 observaciones. En los siguientes gráficos podremos observar si la varianza es constante y si hay algún tipo de no linearidad.
+
+(a) Check the constant variance assumption for the errors.
+
+Se generan diferentes gráficos en los que se pueden observar diferentes casos de no sontancia de varianza:
+
+```{r}
+par(mfrow=c(3,3))
+for(i in 1:9) plot(1:50,rnorm(50))              # constant variance
+for(i in 1:9) plot(1:50,(1:50)*rnorm(50))       # strong heterogeneity
+for(i in 1:9) plot(1:50,sqrt((1:50))*rnorm(50)) # mild heterogeneity
+for(i in 1:9) plot(1:50,cos((1:50)*pi/25)+rnorm(50)) # non-linearity
+```
+
+En primer lugar se observan los valores de los residuos y los predichos para ver la varianza de los errores.
+
+```{r}
+plot(fitted(model), residuals(model), xlab = "Fitted", ylab = "Residuals")
+abline(h=0)
+```
+
+Se puede observar que hay cierta asimetría en la distribución de los residuos.
+
+
+```{r}
+plot(fitted(model), sqrt(abs(residuals(model))), xlab = "Fitted", ylab = expression(sqrt(hat(epsilon))))
+```
+
+En esta distribución se observa cierta corrección de asimetría en la varianza de los errores.
+
+Para ver de forma más clara la varianza de los errores, se puede hacer un análisis de regresión de la raiz cuadrada de los residuos frente a los valores ajustados.
+
+
+```{r}
+summary(lm(sqrt(abs(residuals(model))) ~ fitted(model)))
+```
+Si nos fijamos en los coeficientes, ninguno de éstos es estadísticamente significativo. El valo de R^2 es bastante bajo, lo que indica que el modelo no es adecuado para explicar la varianza de los errores. El estadístico F y su p-valor indican que el modelo no es significativo.
+
+Podría utilizarse alguna transformación no lineal
+
+```{r}
+model <- lm(sqrt(total) ~ expend + salary + ratio + takers, data = sat)
+summary(model)
+plot(fitted(model), residuals(model), xlab = "Fitted", ylab = "Residuals")
+abline(h=0)
+```
+
+La transformación de la variable respuesta ha mejorado lie¡geramente el R cuadrado.
+
+A continuación se viseualizan los residuos contra los predictores individuales, para ver si hay alguna relación entre el error y las variables independientes
+
+```{r}
+plot(sat$expend, residuals(model), xlab = "Expend", ylab = "Residuals")
+abline(h=0)
+
+plot(sat$ratio, residuals(model), xlab = "Expend", ylab = "Residuals")
+abline(h=0)
+
+plot(sat$salary, residuals(model), xlab = "Salary", ylab = "Residuals")
+abline(h=0)
+
+plot(sat$takers, residuals(model), xlab = "Expend", ylab = "Residuals")
+abline(h=0)
+```
+
+
+
+
+Tambbién podria considerarse comparar la varianza entre los dos grupos:
+
+```{r}
+var.test(residuals(model)[sat$expend>6], residuals(model)[sat$exp<6])
+```
+
+```{r}
+var.test(residuals(model)[sat$takers>40], residuals(model)[sat$takers<40])
+```
+No hay diferencias significativas entre los grupos.
+
+(b) Check the normality assumption.
+
+Primero se comprueba graficamente:
+
+```{r}
+par(mfrow=c(3,3))
+n <- 50 
+# normal 
+for(i in 1:9) {x <- rnorm(n) ; qqnorm(x) ; qqline(x)}
+
+
+# lognormal
+for(i in 1:9) {x <- exp(rnorm(n)); qqnorm(x); qqline(x)}
+
+
+# cauchy
+for(i in 1:9) {x <- rcauchy(n); qqnorm(x); qqline(x)}
+
+
+# uniform
+for(i in 1:9) {x <- runif(n); qqnorm(x); qqline(x)}
+
+
+par(mfrow=c(1,1))
+shapiro.test(residuals(model))
+```
+
+El gráfico de los datos es:
+
+```{r}
+qqnorm(residuals(model), ylab = "Residuals", main = "")
+qqline(residuals(model))
+
+```
+Los puntos siguen la línea, aunue los puntos en el extremo derecho se alejan un poco de la línea, podría ser distribución Cauchy (con colas pesadas). Aunque pueden ser outliers. Se podria intentar eliminar estos residuos a ver si siguen presentando diferencias los extremos o son outliers.
+
+
+```{r}
+hist(residuals(model),xlab="Residuals",main="")
+```
+```{r}
+shapiro.test(residuals(model))
+```
+
+No se rechaza la hipótesis nula de normalidad.
+
+(c) Check for large leverage points.
+
+Un leverage alto indica una varianza de residuos pequeña.
+
+
+```{r}
+hatv <- hatvalues(model)
+
+sum(hatv)
+```
+La suma de los leverages es la misma que el número de predictores.
+
+No esperamos una linea recta pero estamos buscando outliers, que serán puntos que divergen del resto.
+
+```{r}
+estados <- row.names(sat)
+halfnorm(hatv, labs = estados, ylab = "Leverages")
+```
+
+A continuacion voy a escalar los residuos y a usar los residuos estandarizados / estandarizados, pues se han estandaruzados para tener varinza igual 
+(no pueden arreglar la heterocedasticidad como tal )
+
+```{r}
+qqnorm(rstandard(model))
+abline(0,1)
+```
+No hay ninguna observación inusual.
+
+(d) Check for outliers.
+
+```{r}
+set.seed(123)
+testdata <- data.frame(x=1:10,y=1:10+rnorm(10))
+lmod <- lm(y ~ x, testdata)
+
+```
+
+En el primer ejemplo se añade un outlier con un valor predictor central
+
+```{r}
+p1 <- c(5.5,12)
+lmod1 <- lm(y ~ x, rbind(testdata, p1))
+plot(y ~ x, rbind(testdata, p1))
+points(5.5, 12, pch=4, cex=2)
+abline(lmod)
+abline(lmod1, lty=2)
+```
+
+Este punto es un outlier pero no cambia sustancialmente la regresión
+
+En el segundo ejemplo se añade un outlier con un valor predictor fuera del rango
+
+```{r}
+p2 <- c(15,15.1)
+lmod2 <- lm(y ~ x, rbind(testdata, p2))
+plot(y ~ x, rbind(testdata, p2))
+points(15, 15.1, pch=4, cex=2)
+abline(lmod)
+abline(lmod2, lty=2)
+```
+
+ESte punto provoca una ligera diferencia, pero no es outlier ni es influencial.
+
+En el tercer caso se añade un tercer outlier (p3)
+
+```{r}
+p3 <- c(15,5.1)
+lmod3 <- lm(y ~ x, rbind(testdata, p3))
+plot(y ~ x, rbind(testdata, p3))
+points(15, 5.1, pch=4, cex=2)
+abline(lmod)
+abline(lmod3, lty=2)
+```
+
+Este punto cambia la regresión subtancialmente Es un outlier y un punto substancial pues cambia los residuos paralos otrps puntos
+
+
+
+Seleccionamos los outliers con mayores residuos y aplicamos la correción de Bonferroni para determinar si son outliers o no.
+
+
+```{r}
+stud <- rstudent(model)
+stud[which.max(abs(stud))]
+```
+
+Calculamos el valor critico de Bonferroni:
+
+```{r}
+qt(0.05/(50*2),44)
+```
+Como el valor absoluto del residuo es menor que el valor crítico, no se puede considerar un outlier.
+
+(e) Check for influential points.
+
+Un punto influencial es aquel cuya eliminación produce un cambio sustancial en el modelo. Puede ser o no un outlier y tener o no un leverage grande, pero al menos suele tener una de las dos caracteristicas.
+
+Los estadísticaos más conocidos son los Cooks:
+
+```{r}
+cook <- cooks.distance(model)
+halfnorm(cook, 3, labs = estados, ylab = "Cook's distance")
+```
+
+A continuación se eliminan los puntos con mayor influencia y se ajusta el modelo de nuevo.
+
+```{r}
+
+modeli <- lm(total ~ expend + salary + ratio + takers, data = sat, subset = (cook < max(cook)))
+summary(modeli)
+summary(model)
+```
+
+Por lo tanto, se observa una diferencia en la significancia de los coeficientes entre los dos modelos, lo que sugiere que la inclusión o exclusión de datos influyentes puede afectar la relación entre las variables predictoras y la variable de respuesta en el modelo de regresión.
+
+
+Este gráfico muestra el cambio en el coeficiente para la variable predictora "expend" después de considerar la diferencia de los datos influentes utilizando la distancia de Cook. Cada punto en el gráfico representa la magnitud del cambio en el coeficiente para "expend" al excluir un punto de datos influyente
+
+```{r}
+plot(dfbeta(model)[,2],ylab = "Change in expend coef")
+abline(h=0)
+```
+Vemos que hay varios puntos que cambiamn.
+
+(f) Check the structure of the relationship between the predictors and the response.
+
+Podemos ver sugerencias de transformaciones de variables para mejorar la estructura de la relación entre las variables predictoras y la variable de respuesta en el modelo de regresión.
+
+Construimos una regresion parcial
+```{r}
+d <- residuals(lm(total ~ expend + salary + ratio + takers, data = sat))
+m <- residuals(lm(expend ~ salary + ratio + takers, data = sat))
+plot(m, d, xlab = "expend residuals", ylab = "sat residuals")
+abline(d, m)
+```
+```{r}
+coef(lm(d ~m))
+
+
+coef(model)
+
+```
+The termplot centers the x ˆ ε + β ˆ i ( x i − x ¯ i ) can be called partial residuals and have mean zero. Finalmente, se usa la función termplot para visualizar la relación entre la variable "expend" y los residuos del modelo total mientras se controlan las otras variables. Esto se hace para explorar la relación entre una variable predictora específica y los residuos del modelo total
+
+```{r}
+termplot(model, partial.resid = T, terms = 1)
+```
+
+Se pueden apreciar dos grupos en el gráfico
+
+```{r}
+model1 <- lm(total ~ expend + salary + ratio + takers, data = sat, subset = (expend>6))
+model2 <- lm(total ~ expend + salary + ratio + takers, data = sat, subset = (expend<6))
+summary(model1)
+summary(model2)
+```
+
+En estos gráficos distinguimos dos grupos, uno con un gasto mayor a 6 y otro con un gasto menor a 6
+
+
+
+```{r}
+sat$status <- ifelse(sat$expend > 6, "high", "low")
+require(ggplot2)
+ggplot(sat, aes(x = takers, y = total, shape = status)) +
+  geom_point()
+```
+
+```{r}
+ggplot(sat, aes(x = takers, y = total, shape = status)) +
+  geom_point() +
+  facet_grid(~ status) +
+  stat_smooth(method = "lm")
+```
+
+
+# 2. (Ejercicio 2 cap. 6 pág. 97)
+
+Using the teengamb dataset, fit a model with gamble as the response and the other variables as
+predictors. Answer the questions posed in the previous question.
+
+
+```{r}
+rm(list = ls())
+data(teengamb, package="faraway")
+lm.fit <- lm(gamble ~ ., data=teengamb)
+```
+### (a) Check the constant variance assumption for the errors.
+
+```{r}
+plot(fitted(lm.fit),rstandard(lm.fit),xlab="Fitted",ylab="Residuals")
+abline(h=0)
+```
+
+Para verificar la suposición de varianza constante, trazamos los valores ajustados contra los residuos estandarizados, buscando cualquier estructura en la distribución de valores alrededor de la línea teórica de valor medio $E[\epsilon]=0$. Parece haber estructura y heterocedasticidad en el gráfico. A continuación, trazamos los valores ajustados contra los residuos para un modelo donde la respuesta ha sido transformada con la función raíz cuadrada. Vemos menos estructura y una varianza más uniformemente distribuida. Aún vemos, incluso con la respuesta transformada, evidencia de que la varianza no es constante. 
+
+```{r}
+lm.fit <- lm(sqrt(gamble) ~ ., data=teengamb)
+plot(fitted(lm.fit),rstandard(lm.fit),xlab="Fitted",ylab="Residuals")
+abline(h=0)
+```
+
+Como referencia, trazamos a continuación cómo se vería el error constante $N(0,1)$ sobre el mismo rango de la respuesta para el mismo número de puntos de datos. Ejecutamos esto varias veces para tener una buena idea de cómo se ve la varianza constante con este número de puntos. Es útil calibrar de esta manera al evaluar si la varianza es constante para conjuntos de datos pequeños y medianos. 
+
+```{r}
+x<-runif(47,min = 0, max=8.5)
+y<-rnorm(47,mean = 0,sd = 1)
+plot(x,y)
+
+```
+
+### (b) Check the normality assumption. 
+
+```{r}
+qqnorm(scale( residuals(lm.fit),center = TRUE, scale = TRUE),ylab="Residuals",main="Q-Q Plot of Standardized Residuals")
+qqline(scale( residuals(lm.fit),center = TRUE, scale = TRUE) )
+```
+
+Observamos clara evidencia de colas largas en la distribución de los residuos.
+
+# 3. (Ejercicio 3 cap. 6 pág. 97)
+For the prostate data, fit a model with lpsa as the response and the other variables as predictors.
+Answer the questions posed in the first question.
+
+```{r}
+rm(list = ls())
+data(prostate, package="faraway")
+lm.fit <- lm(lpsa ~ ., data=prostate)
+```
+
+### (a) Check the constant variance assumption for the errors.
+
+```{r}
+plot(fitted(lm.fit),rstandard(lm.fit),xlab="Fitted",ylab="Residuals")
+abline(h=0)
+```
+
+La varianza de los residuos estandarizados parece constante en el rango de los valores ajustados. Estamos cómodos afirmando que los residuos son homocedásticos para este conjunto de datos.
+
+### (b) Check the normality assumption. 
+
+```{r}
+qqnorm(scale( residuals(lm.fit),center = TRUE, scale = TRUE),ylab="Residuals",main="Q-Q Plot of Standardized Residuals")
+qqline(scale( residuals(lm.fit),center = TRUE, scale = TRUE) )
+```
+
+Los residuos estandarizados parecen tener una ligera cola larga.
+
+# 4. (Ejercicio 4 cap. 6 pág. 97)
+For the swiss data, fit a model with Fertility as the response and the other variables as predictors.
+Answer the questions posed in the first question.
+
+```{r}
+library(GGally)
+
+rm(list = ls())
+data(swiss, package="faraway")
+lm.fit <- lm(Fertility ~ ., data=swiss)
+```
+
+### (a) Check the constant variance assumption for the errors.
+
+```{r}
+plot(fitted(lm.fit),rstandard(lm.fit),xlab="Fitted",ylab="Residuals")
+abline(h=0)
+```
+
+La varianza de los residuos estandarizados parece constante en el rango de los valores ajustados. Estamos cómodos afirmando que los residuos son homocedásticos para este conjunto de datos. 
+
+### (b) Check the normality assumption. 
+
+```{r}
+qqnorm(scale( residuals(lm.fit),center = TRUE, scale = TRUE),ylab="Residuals",main="Q-Q Plot of Standardized Residuals")
+qqline(scale( residuals(lm.fit),center = TRUE, scale = TRUE) )
+```
+
+
+# 5. (Ejercicio 5 cap. 6 pág. 97)
+Using the cheddar data, fit a model with taste as the response and the other three variables as
+predictors. Answer the questions posed in the first question
+
+```{r}
+rm(list = ls())
+data(cheddar, package="faraway")
+lm.fit <- lm(taste ~ ., data=cheddar)
+```
+
+### (a) Check the constant variance assumption for the errors.
+
+```{r}
+plot(fitted(lm.fit),rstandard(lm.fit),xlab="Fitted",ylab="Residuals")
+abline(h=0)
+```
+
+La varianza de los residuos parece constante en el rango de los valores ajustados. Estamos cómodos afirmando que los residuos son homocedásticos para este conjunto de datos.
+
+### (b) Check the normality assumption. 
+
+```{r}
+qqnorm(scale( residuals(lm.fit),center = TRUE, scale = TRUE),ylab="Residuals",main="Q-Q Plot of Standardized Residuals")
+qqline(scale( residuals(lm.fit),center = TRUE, scale = TRUE) )
+```
+
+Los residuos estandarizados parecen estar distribuidos normalmente. 
+
+# 8. (Ejercicio 8 cap. 6 pág. 97)
+
+For the divusa data, fit a model with divorce as the response and the other variables, except year as predictors.
+
+
+
+```{r, echo = FALSE}
+rm(list = ls())
+data(divusa, package="faraway")
+```
+
+```{r, echo=FALSE}
+lm.fit <- lm(divorce ~  unemployed+femlab+marriage+birth+military, data=divusa)
+```
+
+### (a) Check the constant variance assumption for the errors.
+```{r}
+plot(fitted(lm.fit),rstandard(lm.fit),xlab="Fitted",ylab="Residuals")
+abline(h=0)
+```
+
+Observamos una clara estructura y correlación serial en los residuos. Es posible que queramos graficar la respuesta contra algunos de los predictores para buscar cuáles pueden ser candidatos para términos polinomiales en el modelo. 
+
+### (b) Check the normality assumption. 
+
+```{r}
+qqnorm(scale( residuals(lm.fit),center = TRUE, scale = TRUE),ylab="Residuals",main="Q-Q Plot of Standardized Residuals")
+qqline(scale( residuals(lm.fit),center = TRUE, scale = TRUE) )
+```
+Hay alguna evidencia de un comportamiento de cola larga en los residuos.
+
+
+
+### (c) Check for large leverage points. 
+
+```{r}
+library(pander)
+
+hatv <- hatvalues(lm.fit)
+lev.cut <- 6 *2 * 1/ nrow(divusa)
+
+high.leverage <- divusa[hatv > lev.cut,]
+pander(high.leverage, caption = "High Leverage Data Elements")
+```
+
+Hemos utilizado la regla empírica de que los puntos con una influencia mayor que $\frac{2 p}{n}$ deben ser examinados.
+
+### (d) Check for outliers. 
+```{r}
+studentized.residuals <- rstudent(lm.fit)
+max.residual <- studentized.residuals[which.max(abs(studentized.residuals))]
+range.residuals <- range(studentized.residuals)
+names(range.residuals) <- c("left", "right")
+pander(data.frame(range.residuals=t(range.residuals)), caption="Range of Studentized residuals")
+p<-6
+n<-nrow(divusa)
+t.val.alpha <- qt(.05/(n*2),n-p-1)
+pander(data.frame(t.val.alpha = t.val.alpha), caption = "Bonferroni corrected t-value")
+```
+
+Dado que ninguno de los residuos estandarizados cae fuera del intervalo dado por los valores t corregidos por Bonferroni, afirmamos que no hay valores atípicos en el conjunto de datos. 
+
+### (e) Check for influential points. 
+
+Observamos las distancias de Cook y el gráfico de residuos-leverage con contornos de nivel establecidos por la distancia de Cook.   
+```{r}
+plot(lm.fit,which =4)
+plot(lm.fit,which = 5)
+```
+
+Vemos dos puntos de gran influencia claros: los elementos 26 y 27. Un tercero está etiquetado por R, pero la influencia no parece ser muy grande. El libro no discute un criterio para seleccionar puntos influyentes de las distancias de Cook.
+
+Algunas pautas para seleccionar puntos influyentes son:
+
+* puntos con una distancia de Cook más de tres veces la distancia de Cook media
+* puntos con una distancia de Cook mayor que 4/n
+* puntos con una distancia de Cook mayor que 1
+
+Aquí seleccionamos puntos con una distancia de Cook más de tres veces la distancia de Cook media.  
+
+```{r}
+cook.distances <-data.frame( cooks.distance(lm.fit))
+names(cook.distances) <- "cook.distance"
+mean.cooks.distance <- mean(cook.distances$cook.distance)
+pander(data.frame(mean.cooks.distance=mean.cooks.distance), caption = "Mean Cook distance")
+influential.points <- cook.distances[cook.distances$cook.distance > 3*mean.cooks.distance,,drop=FALSE]
+
+pander(influential.points, caption = "Points with Cook distance greater than three times the mean Cook distance.")
+```
+
+### (f) Check for structure in the model. 
+
+Observamos evidencia de estructura adicional no explicada por el modelo. Primero, un gráfico de las variables puede ayudar a guiar los próximos pasos.. 
+
+```{r}
+ggpairs(within(divusa,rm("year"))) + 
+  theme(axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank())
+```
+
+Graficamos residuos contra todos los predictores y encontramos que $femlab$ y $marriage$ tenían la mayor estructura. Estos son los candidatos probables para incluir términos adicionales en la regresión. Es evidente que sería apropiado un polinomio de tercer orden. Graficamos $birth$ versus residuos porque descubrimos más tarde que agregar términos polinomiales para eso redujo la estructura que vimos en el gráfico de residuos versus ajustados.
+
+```{r}
+
+plot(divusa$marriage,residuals(lm.fit),xlab="marriage",ylab="Residuals",main = "marriage versus residuals")
+
+plot(divusa$femlab,residuals(lm.fit),xlab="femlab",ylab="Residuals", main= "femlab versus residuals")
+
+plot(divusa$birth,residuals(lm.fit),xlab="birth",ylab="Residuals",main = "birth versus residuals")
+
+```
+
+Antes de intentar eliminar la estructura no explicada, investiguemos el gráfico de regresión parcial / variable agregada para estas variables.
+
+Este es el gráfico de regresión parcial para $femlab$
+
+```{r}
+
+d <- residuals(lm(divorce ~  unemployed+marriage+birth+military,divusa))
+m <- residuals(lm(femlab ~  unemployed+marriage+birth+military,divusa))
+plot(m,d,xlab="femlab residuals",ylab="divorce residuals",main = "Partial regression plot for femlab")
+```
+
+Este es el gráfico de regresión parcial para $matrimonio$
+
+```{r}
+
+d <- residuals(lm(divorce ~  unemployed+femlab+birth+military,divusa))
+m <- residuals(lm(marriage ~  unemployed+femlab+birth+military,divusa))
+plot(m,d,xlab="marriage residuals",ylab="divorce residuals", main = "partial regression plot for marriage")
+```
+
+Este es el gráfico de regresión parcial para $birth$
+
+```{r}
+d <- residuals(lm(divorce ~  unemployed+femlab+marriage+military,divusa))
+m <- residuals(lm(birth ~  unemployed+femlab+marriage+military,divusa))
+plot(m,d,xlab="birth residuals",ylab="divorce residuals",main = "partial regression plot for birth")
+```
+
+I'm not sure why we don't see non-linearity in these plots.  I'll return to the theory behind this and investigate - hopefully before the homework is due!  for now let's see if introduction of polynomial terms reduces the structure in the residuals versus fitted plot. 
+
+We tried adding in polynomial terms for marriage and femlab.  It was not until we added polynomial terms for birth and marriage that the structure in the residuals was reduced.  The residuals versus fitted for the models with polynomial terms 
+
+
+```{r, echo=FALSE}
+lm.fit <- lm(divorce ~  unemployed+femlab+marriage+birth+military  +I(marriage^2) + I(marriage^3) , data=divusa)
+plot(fitted(lm.fit),residuals(lm.fit),xlab="Fitted",ylab="Residuals", main = "Polynomial terms added for birth")
+abline(h=0)
+```
+
+```{r, echo=FALSE}
+lm.fit <- lm(divorce ~  unemployed+femlab+marriage+birth+military  +I(birth^2) + I(birth^3)+I(marriage^2) + I(marriage^3), data=divusa)
+plot(fitted(lm.fit),residuals(lm.fit),xlab="Fitted",ylab="Residuals", main = "Polynomial terms added for birth and marriage")
+abline(h=0)
+```

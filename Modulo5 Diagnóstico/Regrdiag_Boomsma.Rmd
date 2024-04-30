@@ -1,0 +1,550 @@
+---
+title: "Regression Diagnostics with R"
+author: 
+- Anne Boomsma (April 30, 2014)
+- Reviewed by Francesc Carmona (April 21, 2023)
+output:
+  prettydoc::html_pretty:
+    theme: prettydoc
+    highlight: github
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Load the `faraway` package, and
+from that package data frame `savings`.
+
+```{r}
+library(faraway)
+data(savings)
+savings
+```
+
+Documentation of "Savings rates":
+```{r eval=FALSE, include=FALSE}
+? savings
+```
+
+Linear regression model M1
+```{r}
+M1 <- lm(sr ~ pop15 + pop75 + dpi + ddpi, data=savings)
+(M1_sum <- summary(M1))    # summary of estimated model
+```
+
+Check whether the details of this summary are well understood.
+```{r}
+options(show.signif.stars=F) # suppress stars of significance
+options(digits=4)            # set numbers of significant digits
+```
+
+The fitted values $\hat{Y}_i$ and the residuals $e_i$ can be obtained as follows:
+```{r}
+fitted(M1)                    # predicted Y_i
+residuals(M1)                 # residuals e_i
+which.max(abs(residuals(M1))) # largest absolute residual |e_i|?
+```
+
+Graphic overview with the `plot()` function on an `lm` object.
+```{r}
+oldpar <- par(mfrow=c(2,2))
+plot(M1)
+par(oldpar)
+```
+
+The same graphic with the `gglm` package
+```{r}
+library(gglm)
+gglm(M1)
+```
+
+What are these plots for?
+We will see it in the following sections.
+
+# Checking model assumptions
+
+## Constant variance
+
+**Residual plot: $\hat{Y}_i$ against $e_i$**
+```{r}
+par(las=1)               # horizontal style of axis labels
+plot(fitted(M1), residuals(M1), xlab="Fitted", ylab="Residuals")
+abline(h=0, col="red")   # draws a horizontal red line at y = 0
+```
+
+Diagnostic plot for an `lm()`.
+```{r}
+plot(M1, which=1)
+```
+
+Another graphic with the `gglm` package
+```{r}
+ggplot2::ggplot(data = M1) + stat_fitted_resid()
+```
+
+
+**Absolute residual plot: $\hat{Y}_i$ against $|e_i|$**
+```{r}
+plot(fitted(M1), abs(residuals(M1)), xlab="Fitted", ylab="|Residuals|")
+```
+
+**Absolute residual plot: $\hat{Y}_i$ against sqrt(standardized $|e_i|$)**
+```{r}
+plot(M1, which=3)
+```
+
+With the `gglm` package
+```{r}
+ggplot2::ggplot(data = M1) + stat_scale_location()
+```
+
+
+**Quick and dirty test (Faraway)**
+```{r}
+summary(lm(abs(residuals(M1)) ~ fitted(M1)))
+```
+
+**Interpretation of residual plots**
+```{r}
+par(mfrow=c(3,3))
+for(i in 1:9) plot(1:50,rnorm(50))              # constant variance
+for(i in 1:9) plot(1:50,(1:50)*rnorm(50))       # strong heterogeneity
+for(i in 1:9) plot(1:50,sqrt((1:50))*rnorm(50)) # mild heterogeneity
+for(i in 1:9) plot(1:50,cos((1:50)*pi/25)+rnorm(50)) # non-linearity
+```
+
+## Normality
+
+**Q-Q plots**
+```{r}
+par(mfrow=c(1,1))                       # reset plotting device
+qqnorm(residuals(M1), ylab="Residuals") # Q-Q plot
+qqline(residuals(M1))                   # line through Q1 and Q3
+```
+
+With the `gglm` package
+```{r}
+ggplot2::ggplot(data = M1) + stat_normal_qq()
+```
+
+**Interpretation of Q-Q plots**
+```{r}
+par(mfrow=c(3,3))
+# standard normal distribution (symmetric)
+for(i in 1:9) {x = rnorm(50); qqnorm(x); qqline(x)}
+# lognormal distribution (long right tail, skew to right)
+for(i in 1:9) {x = rlnorm(50); qqnorm(x); qqline(x)}
+# Student t-distribution with one df (heavy tails, platykurtic)
+for(i in 1:9) {x = rt(50,1); qqnorm(x); qqline(x)}
+# uniform (0,1) distribution (short tails, leptokurtic)
+for(i in 1:9) {x = runif(50); qqnorm(x); qqline(x)}
+```
+
+**Histograms and box plots**
+```{r}
+par(mfrow=c(1,1))
+hist(residuals(M1))
+boxplot(residuals(M1))
+```
+
+```{r}
+ggplot2::ggplot(data = M1) + stat_resid_hist(bins=15)
+```
+
+**Shapiro-Wilk normality test**
+```{r}
+shapiro.test(residuals(M1))
+```
+
+## Independent errors
+
+The data set `airquality` from the `datasets` package serves as a more appropriate illustration here than the `savings` data.
+```{r}
+attach(airquality)
+str(airquality)
+```
+**Scatter plots**
+```{r}
+pairs(airquality, panel=panel.smooth)
+```
+
+Inspection of correlations for linear relationships (listwise deletion of missing cases).
+```{r}
+round(cor(airquality, use="complete.obs"), digits=2)
+```
+
+Next a linear regression model `M2` for `Ozone` is fitted to the data, where `Month` and `Day` are not used as linear predictors.
+```{r}
+M2 <- lm(Ozone ~ Solar.R + Wind + Temp, data=airquality,
+                na.action=na.exclude)
+summary(M2)
+```
+
+```{r}
+table(complete.cases(airquality))
+```
+We notice that the data frame has missing values. There are 111 complete cases only. The default with respect to missing values for regression analysis in R is to omit any case that
+contains a missing value. The option `na.action=na.exclude` does not use cases with missing values in the computation but keeps track of which cases are missing in the residual, fitted
+values and other quantities.
+
+Residual diagnostics show some non-constant variance and non-linearity –see the previous `pairs()` plots. Therefore, a logarithmic transformation of the response variable `Ozone` is
+made, resulting in model `M2_log`.
+
+**Transformation of the response variable**
+```{r}
+M2_log <- lm(log(Ozone) ~ Solar.R + Wind + Temp, airquality, na.action=na.exclude)
+summary(M2_log)
+```
+
+Notice the improvement of fit of model `M2_log` over that of model `M2`, where `Ozone` was untransformed.
+
+We now check for correlated error terms. Recall that there is a time component in the airquality data.
+
+**Index plot of residuals $e_i$, i.e., a plot of $e_i$ against time**
+```{r}
+par(las=1, mfrow=c(1,1))
+plot(residuals(M2_log), ylab="Residuals")
+abline(h=0)
+```
+
+If there was serial correlation, we would see either long runs of residuals above or below
+the line for positive correlation, or greater than normal fluctuations for negative correlation.
+Unless the effects are strong, they may be difficult to detect. Therefore, it is often better to
+plot successive residuals.
+
+**Plot of successive residuals $e_i$ against $e_{i+1}$**
+```{r}
+n <- length(residuals(M2_log))
+plot(tail(residuals(M2_log),n-1) ~ head(residuals(M2_log),n-1), xlab=expression(hat(epsilon)[i]),ylab=expression(hat(epsilon)[i+1]))
+abline(h=0,v=0,col=grey(0.75))
+```
+
+No obvious problem with correlated errors is shown. There is an outlier though, which we may try to identify. Is there really only one outlier?
+
+**Regression of $e_{i+1}$ [response] on $e_i$ [explanatory variable]**
+```{r}
+summary(lm( tail(residuals(M2_log),n-1) ~ 0 + head(residuals(M2_log),n-1)))
+```
+
+This regression model of successive residuals omits the intercept term, because the mean of the residuals is zero, by definition.
+
+Clearly, there is no substantive correlation (take the square root of R-Squared, which gives 0.10922), also to be shown as follows:
+```{r}
+cor(tail(residuals(M2_log),n-1),head(residuals(M2_log),n-1), use="complete.obs")
+```
+**Durbin-Watson test**
+```{r message=FALSE}
+library(lmtest)
+dwtest(Ozone ~ Solar.R + Wind + Temp, data=na.omit(airquality))
+dwtest(log(Ozone) ~ Solar.R + Wind + Temp, data=na.omit(airquality))
+```
+
+The $p$ value indicates that there is no evidence of correlated errors, but the results should be viewed with skepticism because of the omission of the missing values.
+
+In general, if the errors appear to be correlated, we can use generalized least squares estimation, implemented by the function `gls()`.
+
+
+# Detecting unusual observations
+
+## Leverage points
+
+```{r eval=FALSE, include=FALSE}
+help(influence)
+```
+```{r}
+M1_inf <- influence(M1)
+head(M1_inf$hat)
+summary(M1_inf$hat)
+sum(M1_inf$hat)      # sum equals number of regression coeficients
+```
+
+**High leverage**
+```{r}
+k <- 4     # number of predictors
+p <- 5     # number of parameters or regression coeficients
+n <- length(savings$sr)
+which(M1_inf$hat > 2*p/n)
+```
+
+The `hatvalues()` function:
+```{r}
+head(hatvalues(M1)) # hat() for a design matrix
+sum(hatvalues(M1))
+```
+
+**Half-normal plots for leverages**
+```{r}
+par(mfrow=c(1,1))
+countries <- rownames(savings) # stores names of countries
+halfnorm(influence(M1)$hat, labs=countries, ylab="Leverages")
+```
+
+Plot leverage points against standardized residuals
+```{r}
+plot(M1, which=5)
+```
+
+With the `gglm` package
+```{r}
+ggplot2::ggplot(data = M1) + stat_resid_leverage()
+```
+
+
+## Outliers
+
+**Standardized residuals**
+```{r}
+M1_sum$sigma
+zresid <- residuals(M1)/(M1_sum$sig) # standardized residuals
+head(zresid) # standardized residuals and country names
+qqnorm(zresid, ylab="Standardized Residuals") # Q-Q plot
+abline(0,1) # line 'y = x'
+```
+
+**Studentized residuals**
+```{r}
+stud <- rstandard(M1) # Studentized residuals and country names
+head(stud)
+```
+
+Definition
+```{r}
+head(cbind(residuals(M1)/(M1_sum$sigma*sqrt(1 - M1_inf$hat)), stud))  
+qqnorm(stud, ylab="Studentized Residuals") # Q-Q plot
+abline(0,1) # line ’y = x’
+```
+
+
+**Jackknifed Studentized residuals**
+```{r}
+jack <- rstudent(M1) # leave-one-out Studentized residuals
+```
+
+Definition of leave-one-out Studentized residuals
+```{r}
+head(cbind(residuals(M1)/sqrt(M1_inf$sigma^2 * (1-M1_inf$hat)), jack))
+```
+```{r}
+jack[which.max(abs(jack))]
+```
+
+```{r message=FALSE}
+library(car)
+qqPlot(jack, distribution="t", df=n-k-2)
+```
+
+
+**Is this an outlier?**
+
+$t$ criterium
+```{r}
+which(abs(jack) > qt(0.975, n-p-1))
+```
+
+Dummy criterium
+```{r}
+which(abs(jack) > 2)
+```
+
+Bonferroni criterium
+```{r}
+which(abs(jack) > -qt(0.05/(2*n), n-p-1))
+```
+
+Bonferroni outlier test
+```{r message=FALSE}
+library(car)
+outlierTest(M1)
+```
+
+
+## Influential observations
+
+**Cook's distance**
+```{r}
+cook <- cooks.distance(M1)
+head(cook)
+countries <- rownames(savings)
+halfnorm(cook, 3, labs=countries, ylab="Cook’s distance")
+which.max(cook)
+```
+
+There are different opinions regarding what cut-off values to use for spotting highly influential points. Since Cook's distance is in the metric of an $F$ distribution with $p=k+1$ and $n-p$ degrees of freedom, the median point `qf(0.5,p,n-p)` can be used as a cut-off. Since this value is close to 1 for large $n$, a simple operational guideline of $D_i>1$ has been suggested. For moderate values of $n$, it is suggested to use $D_i > 4/(n-p)$.
+
+Diagnostic lm plotting function
+```{r}
+cutoff <- 4/(n-k-1)  # k = number of predictors
+plot(M1, which=4, cook.levels=cutoff)
+```
+
+```{r}
+ggplot2::ggplot(data = M1) + stat_cooks_obs()
+```
+
+Plot leverage points against Cook’s distance
+```{r}
+plot(M1, which=6)
+```
+
+In the Cook's distance vs leverage/(1-leverage) plot, contours of standardized residuals `rstandard()` that are equal in magnitude are lines through the origin. The contour lines are labelled with the magnitudes. 
+$$
+C_i = \frac{r_i^2}{k+1} \cdot \frac{h_{ii}}{1-h_{ii}}
+$$
+where $C_i$ is the Cook's distance, $r_i$ the studentized residual and $h_{ii}$ the leverage.
+
+**Influence Plot**
+```{r}
+# library(car)
+influencePlot(M1, id=T, main="Influence Plot", sub="Circle size is proportial to Cook's Distance" )
+```
+
+**Influence Index Plot**
+```{r}
+# library(car)
+infIndexPlot(M1)
+```
+
+**Example**
+
+If we exclude Lybia:
+```{r}
+M1_L <- lm(sr ~ pop15 + pop75 + dpi + ddpi, data=savings,
+               subset=(cook < max(cook)))
+summary(M1_L)
+M1_inf <- influence(M1)
+head(M1_inf$coef)
+```
+
+Recall that in the coefficients matrix `M1_inf$coef`, the ith row contains the change in the estimated coefficients which results when the ith case is dropped from the regression.
+```{r}
+head(M1_inf$coef[,2])
+```
+The second column of `M1_inf$coef` is related to the regression coefficient of `pop15`, the first explanatory variable (after the intercept term).
+```{r}
+plot(M1_inf$coef[,2], ylab="Change in pop15 coefficient")
+abline(h=0)
+# identify(1:50, M1_inf$coef[,2], countries) # identify plotted points
+```
+
+Here, we have plotted the change in the second parameter estimate when a single case is left out. The `identify()` function was used to identify plotted points. The country with the largest change could also be identified with the following command:
+```{r}
+which.max(abs(M1_inf$coef[,2]))
+```
+The previous plot should be repeated for the other coefficients. In the last plot, `Japan` is an influential observation. We might therefore examine the effect of removing this country from
+the sample data.
+```{r}
+M1_J <- lm(sr ~ pop15 + pop75 + dpi + ddpi, data=savings,
+                  subset=(countries != "Japan"))
+summary(M1_J)     # linear model estimates without Japan
+```
+
+Compare the results of this model with those of the full model.
+
+# Checking the structure of the model
+
+Diagnostics can also be used to detect deficiencies in the structural part of the model,
+given by $E(Y) = X\beta$.
+
+Plots of $e_i$ against $\hat{y}_i$ and $x_i$ can also suggest transformations of
+the variables which might improve the structural form of the model.
+
+We can also make plots of $y$ against each $x_i$.
+
+The drawback to these plots is that
+the other predictors often affect the relationship between a given predictor and the response.
+
+## Added variable plot or partial regression plot
+
+These plots can help isolate the effect of $x_i$ on $y$.
+
+We regress $y$ on all $x$ except $x_i$, and get residuals $\delta$.
+$$
+y = \alpha_0 + \sum_{j\ne i} \alpha_j x_j + \delta
+$$
+Similarly, we regress $x_i$ on all $x$ except $x_i$ and get
+residuals $\gamma$.
+$$
+x_i = \psi_0 + \sum_{j\ne i} \psi_j x_j + \gamma
+$$
+The added variable plot shows $\delta$ against $\gamma$. Look for non-linearity and outliers and/or influential
+observations in the plot.
+
+Example: We illustrate using the `savings` dataset as an example again. We construct a partial regression (added variable) plot for `pop15`:
+```{r}
+delta <- residuals(lm(sr ~ pop75 + dpi + ddpi, savings))
+gamma <- residuals(lm(pop15 ~ pop75 + dpi + ddpi, savings))
+plot(gamma, delta, xlab="pop15 residuals", ylab="Savings residuals")
+```
+
+The plot shows nothing remarkable. There
+is no sign of non-linearity or unusual points.
+
+An interesting feature of such plots is
+revealed by considering the regression line. We compute this for the plot and notice
+that it is the same as the corresponding coefficient from the full regression:
+```{r}
+M1d <- lm(delta ~ gamma)
+coef(M1d)
+coef(M1)
+plot(gamma, delta, xlab="pop15 residuals", ylab="Savings residuals")
+abline(0, coef(M1)["pop15"])
+```
+
+The added variable plot function `avPlots()` in the `car` package does a similar job for all the predictor variables.
+```{r}
+# library(car)
+oldpar <- par(mfrow=c(2,2))
+avPlots(M1)
+par(oldpar)
+```
+
+## Partial residual plot
+
+This is a competitor of the added variable plot.
+
+We know $y = \hat{y} + e$, then we have to
+$$
+y - \sum_{j\ne i} \hat{\beta}_jx_j = \hat{\beta}_i x_i + e
+$$
+We plot $e + \hat{\beta}_i x_i$ against $x_i$. Again, the estimated slope will be $\hat{\beta}_i$. Partial residual plots are better for the detection of linearity, added variable
+plots are better for the detection of outliers and influential data points.
+```{r}
+plot(savings$pop15, residuals(M1)+coef(M1)["pop15"]*savings$pop15,
+             xlab="pop15", ylab="Savings Adjusted")
+abline(0,coef(M1)["pop15"])
+```
+
+There is a function that draws the graph directly.
+```{r}
+termplot(M1, partial.resid = TRUE, terms = 1)
+```
+
+The partial residual plot function `prplot()` from the `faraway` package can be
+used, which provides the same result.
+```{r eval=FALSE, include=FALSE}
+prplot(M1, i=1)
+```
+
+The functions `crPlot()` or `crPlots()` [component + residual (partial residual) plots] in the `car` package could also be used.
+
+It appears from these plots that there are different relationships in two groups: a group with a low percentage of the population under 15 years (`pop15`), and a group with a high percentage of `pop15`. A division could be made at `pop15 = 35`. We could, therefore, perform two
+separate analyses, one for each group.
+```{r}
+M1_low <- lm(sr ~ pop15+pop75+dpi+ddpi, data=savings, subset=(pop15 < 35))
+M1_high <- lm(sr ~ pop15+pop75+dpi+ddpi, data=savings, subset=(pop15 > 35))
+```
+
+Try to interpret the results of these analyses whith the summaries, and draw appropriate conclusions. Notice,
+for example, the different estimates of the residual standard errors in the two groups, and the different R-squared values.
+
+
+# More diagnostics
+
+The general suite of functions `influence.measures(model)` also contains the functions `dffits(model)`, `dfbeta(model)` and `dfbetas(model)`.
+

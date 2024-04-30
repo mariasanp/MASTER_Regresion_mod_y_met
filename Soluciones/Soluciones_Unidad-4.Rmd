@@ -1,0 +1,483 @@
+---
+title: "Regresión lineal simple y múltiple"
+output:
+  prettydoc::html_pretty:
+    theme: tactile
+    highlight: vignette
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r paquetes, include=FALSE}
+if(!(require(faraway))) install.packages("faraway")
+if(!(require(devtools))) install.packages("devtools")
+if(!(require(printr))) {
+  install.packages(
+    'printr',
+    type = 'source',
+    repos = c('http://yihui.name/xran', 'http://cran.rstudio.com'))}
+```
+
+
+
+<!---
+_Nota: Para preparar estas soluciones hemos utilizado, además de nuestras propias soluciones, material de ejercicios realizados por los estudiantes David Fisas y Pilar Natividad (curso 2015-16) así como los de Sergio Diez (curso 2016-17) por lo que quiero agradecer su permiso para utilizar dichos materiales._
+--->
+
+# Ejercicios del libro de Carmona
+
+### Ejercicio 6.8
+
+**Hallar la recta de regresión simple de la variable respuesta raíz cuadrada de la velocidad sobre la variable regresora densidad con los datos de la tabla 1.11.1 del capítulo 1.**
+
+```{r}
+require(faraway)
+dens<-c(12.7,17.0,66.0,50.0,87.8,81.4,75.6,66.2,
+        +81.1,62.8,77.0,89.6,18.3,19.1,16.5,22.2,
+        +18.6,66.9,60.3,56.0,66.3,61.7,66.6,67.8)
+vel<-c(62.4,50.7,17.1,25.9,12.4,13.4,13.7,17.9,13.8,
+       +17.9,15.8,12.6,51.2,50.8,54.7,46.5,46.3,16.9,
+       +19.8,21.2,18.3,18.0,16.6,18.3)
+
+rvel <- sqrt(vel)
+recta68 <- lm(rvel~dens)
+(recta68s <- sumary(recta68))
+```
+
+**Comprobar las propiedades del ejercicio 6.4, es decir:**
+
+- La suma de los residuos es cero.
+- La suma de los residuos ponderada por los valores de la variable regresora es cero.
+- La suma de los residuos ponderada porlas prediccionesde los valores observados es cero
+
+```{r}
+residuos68 <- residuals(recta68) # vector de errores e = y~i~ - y~est i~
+sum(residuos68) # suma de los residuos = 0
+sum(rvel) # suma de los valores de y
+sum(fitted(recta68)) # suma de los valores esperados de y
+sum(dens*residuos68) # suma de los residuos ponderada por los valores de x = 0
+sum(fitted(recta68)*residuos68) # suma de los residuos ponderada por las predicciones de y = 0
+```
+
+**Calcular la estimacion de $\sigma^2$ y, a partir de ella, las estimaciones de las desviaciones estándar de los estimadores de los parámetros $\hat \beta_0$ y $\hat \beta_1$.**
+
+```{r}
+n68 <- length(dens)
+SCR68 <- sum(residuos68^2)
+sigma268 <- SCR68/(n68-2) #ECM=Error Cuadrático Medio=Varianza de los residuos
+sigma268
+s2dens<-(1/n68)*sum((dens-mean(dens))^2) #varianza muestral de dens
+Sdens <- n68*s2dens
+eebeta168 <- sqrt(sigma268/Sdens)
+eebeta168
+eebeta068 <- sqrt(sigma268*((1/n68)+(mean(dens)^2/Sdens)))
+eebeta068
+#Comparamos con el resultado de summary():
+names(recta68s)
+recta68s$coefficients[,2]
+```
+
+**Obtened los intervalos de confianza para los parámetros al 95% de confianza.**
+
+
+```{r}
+#Intervalos de confianza para los parámetros, al 95%
+trecta68 <- qt(0.975,recta68$df)
+recta68$coef[2]+c(-1,1)*trecta68*eebeta168 #IC ß~1~ 95%
+recta68$coef[1]+c(-1,1)*trecta68*eebeta068 #IC ß~0~ 95%
+```
+
+**Construir la tabla para la significación de la regresión y realizar dicho contraste. (H~0~: ß~1~=0 (No hay efecto de la relación entre ambas variables)**
+```{r}
+#Contraste para la significación de la regresión: 
+s2rvel<-(1/n68)*sum((rvel-mean(rvel))^2)
+(Srvel <- n68*s2rvel)
+sdensrvel <- sum((dens-mean(dens))*(rvel-mean(rvel)))
+(Sdensrvel <- n68*sdensrvel)
+
+SCRH68 <- sum((rvel-mean(rvel))^2)
+SCRH68
+SCRH68-SCR68
+
+#La tabla para el test de significación de la regresión puede construirse con la función
+#aov()
+summary(aov(recta68))
+```
+El resultado del test de significación de la regresión es  significativo con un $p << \alpha=0.05$.
+
+**Hallar el intervalo de la predicción de la respuesta media cuando la densidad es de 50 vehículos/km al 90% de confianza.**
+
+```{r}
+#Intervalo de confianza para la predicción si x=50, al 90%
+
+#'Manual'
+y0 <- recta68$coef[1]+recta68$coef[2]*50 #valor muestral de y0 para x0=50, según el modelo. #Queremos obtener el intervalo de predicción de Y0=50 para futuras observaciones
+y0
+trecta68 <- qt(0.950,recta68$df)
+sigma68 <- sqrt(sigma268)
+y0+c(-1,1)*trecta68*sigma68*sqrt(1+(1/n68)+((((50-mean(dens))^2)/Sdens)))
+
+#Función predict()
+predict(recta68,new=data.frame(dens=50),interval="prediction",level=0.90)
+
+#Para la predicción de la respuesta media (parámetro) el intervalo se estrecha:
+predict(recta68,new=data.frame(dens=50),interval="confidence",level=0.90)
+```
+
+### Ejercicio 6.10
+
+**Se admite que una persona es proporcionada si su altura en cm es igual a su en kg más 100. En términos estadísticos si la recta de regresión de $Y$ (altura) sobre $X$ (peso) es $Y=100+X$.**
+
+**Contrastar con $\alpha=0.05$ si se puede considerar válida esa hipótesis a partir de la siguiente muestra de mujeres jóvenes. Razona la bondad de regresión y los detalles del contraste.**
+
+```{r}
+X <- c(55,52,65,54,46,60,54,52,56,65,52,53,60)
+Y <- c(164,164,173,163,157,168,171,158,169,172,168,160,172)
+```
+Empezamos ajustando un  modelo de regresión a partir de los datos:
+```{r}
+modelo <- lm(Y ~ X)
+sumary(modelo)
+```
+Si comparamos visualmente ambos modelos vemos que las pendientes son similares, pero no así el corte con los ejes
+```{r}
+plot(Y ~ X, xlim=c(40,75), ylim=c(130, 190))
+abline(modelo)
+abline(100,1)
+```
+
+O usando `ggplot2`
+```{r}
+require(ggplot2)
+datos<- data.frame(X,Y)
+ggplot(datos,aes(X,Y))+
+  geom_point()+
+  stat_smooth(method="lm", level=0.90)+
+  geom_abline(intercept = 100, slope =1)+
+  ylim(c(140,180))
+```
+
+Calculamos los intervalos de confianza de $\beta_0$ y $beta_1$ al 95% para comprobar si incluyen los valores del modelo teórico 100 y 1, respectivamente.
+```{r}
+confint(modelo)
+```
+
+Con un nivel de significación del 5% los intervalos hallados incluyen, en ambos casos, los valores del modelo 100 y 1. Sin embargo, estos intervalos no constituyen una región de confianza para los dos parámetros conjuntamente.
+
+El test definitivo es
+```{r}
+modelo0 <- lm(Y ~ 0 + offset(100 + X))
+anova(modelo0,modelo)
+```
+
+Luego rechazamos que los datos se ajusten al modelo propuesto.
+
+### Ejercicio 6.11
+
+**El período de oscilación de un péndulo es $2\pi\sqrt{\frac{l}{g}}$, con $l$ longitud y $g$ la constante de gravitación.**
+
+**(a) Proponer un modelo para estimar la constante $C=2\pi/\sqrt{g}$**
+
+Si ponemos: $x = \sqrt{l}$, $y$ = tiempo del período tendremos un modelo lineal sin término independiente:
+$$
+y = C \cdot x + \epsilon
+$$
+Este modelo se puede analizar como de costumbre o, mucho mejor, teniendo en cuenta que no existe término independiente.
+
+```{r}
+require(faraway)
+longitud<-c(rep(18.3,4),rep(20,2),rep(21.5,3),rep(15,2))
+x <- sqrt(longitud)
+y <- c(8.58,7.9,8.2,7.8,8.4,9.2,9.7,8.95,9.2,7.5,8)
+mod1 <- lm(y ~ 0 + x)
+sumary(mod1)
+mod2 <- lm(y ~ x - 1)
+sumary(mod2)
+```
+Los dos modelos son idénticos.
+
+**(b) Contrastar $H_0:\frac{2\pi}{\sqrt{g}}=2$ con alternativa $H_1\frac{2\pi}{\sqrt{g}}\neq 2$.**
+
+Podemos utilizar el modelo que acabamos de ajustar y utilizar un intervalo de confianza al 95% para $\beta_1$ para realizar el contraste.
+
+$IC = \hat \beta_1 \pm t_{n-1}(1-\alpha/2) \hat \sigma_{\beta_1}$
+Llamando `betaInf`, `betaSup` a los extremos inferior y superior de dicho intervalo:
+```{r}
+estim <- sumary(mod2)$coefficients
+(betaInf <-estim[1,1] - qt(0.975,10)*estim[1,2])
+(betaInf <-estim[1,1] + qt(0.975,10)*estim[1,2])
+confint(mod1)
+```
+
+El intervalo de confianza contiene el 2 por lo que no hay motivo para rechazar la hipótesis.
+
+### Ejercicio 8.4
+
+**Se dispone de los siguientes datos sobre diez empresas fabricantes de productos de limpieza doméstica:**
+
+**(1) Estimar el vector de coeficientes $\beta = (\beta_0 , \beta_1 , \beta_2)$ del modelo $$V_i =\beta_0 + \beta_1 IP_i + \beta_2 PU_i + \epsilon_i$$**
+
+**(2) Estimar la matriz de varianzas-covarianzas del vector $\mathbf{\beta}$.**
+
+**(3) Calcular el coeficiente de determinación $R^2$.**
+
+```{r}
+v <- c(60,48,42,36,78,36,72,42,54,90)
+ip <- c(100,110,130,100,80,80,90,120,120,90)
+pu <- c(1.8,2.4,3.6,0.6,1.8,0.6,3.6,1.2,2.4,4.2)
+datos <- cbind(ip,pu)
+ventas.datos <- data.frame(v,datos)
+par(pty="s")
+pairs(ventas.datos)
+
+regr <- lm(v~ip+pu)
+summary(regr)
+```
+
+(a) El vector de coeficientes estimados es:
+
+```{r}
+regr$coef
+b0 <- regr$coef[1]
+b1 <- regr$coef[2]
+b2 <- regr$coef[3]
+```
+
+Es decir que el modelo de regresión es:
+
+V = `r b0` - `r b1` ip + `r b2` pu
+
+(b) La matriz estimada de varianzas y covarianzas entre los estimadores MC de los coeficientes del modelo es:
+
+```{r}
+summary(regr)$sigma^2*summary(regr)$cov.unscaled
+```
+
+O alternativamente:
+
+```{r}
+regr.ls <- lsfit(datos,v)
+regr.diag <- ls.diag(regr.ls)
+regr.diag$std.dev^2*regr.diag$cov.unscaled
+```
+
+(c) El coeficiente de determinación o proporción de variabilidad explicada se obtiene directamente del `summary()` del modelo de regresión no estandarizado:
+
+```{r}
+summary(regr)$r.squared
+```
+
+
+
+# Ejercicios del libro de Faraway
+
+### Ejercicio 4.1
+**For the `prostate` data, fit a model with `lpsa` as the response and the other variables as predictors.**
+
+```{r}
+data(prostate, package="faraway")
+colnames(prostate)
+regr.pros <- lm(lpsa~lcavol+lweight+age+lbph+svi+lcp+gleason+pgg45,prostate)
+sumary(regr.pros)
+```
+
+**(a) Suppose a new patient with the following values arrives:**
+```{r}
+head(x0pros <- data.frame(lcavol=1.44692,
+                     lweight=3.62301,
+                     age=65,
+                     lbph=0.30010,
+                     svi=0,
+                     lcp=-0.79851,
+                     gleason=7,
+                     pgg45=15))
+```
+**Predict the lpsa for this patient along with an appropriate 95% CI.**
+```{r}
+predict(regr.pros, x0pros, interval="prediction", level=0.95) 
+```
+**(b) Repeat the prediction with a patient with the same data but an age of 20. Why is the CI wider.**
+
+```{r}
+x1pros <- data.frame(lcavol=1.44692,lweight=3.62301,age=20,lbph=0.30010,svi=0,lcp=-0.79851,gleason=7,pgg45=15)
+predict(regr.pros,x1pros,interval="prediction")
+```
+
+El intervalo con el valor de 20 en `age` es más amplio que cuando es 65 debido a que ese valor está fuera del rango de valores para esa variables, y el modelo está extrapolando sobre valores que quedan fuera de aquellos sobre los que se ha contruido el modelo de ajuste. Cuanto más alejados sean los valores predictores de ese rango de valores originales, más amplio será el intervalo, mayor el error y menos ajustada la predicción.
+
+**(c) For the model of the previous question, remove all the predictors that are not significant at the 5% level. Now recompute the predictions of the previous question. Are the CIs wider or narrower? Which predictions would you prefer? Explain.**
+
+```{r}
+sumary(regr.pros)
+```
+
+Analizando el resumen de la regresión se observa que las variables cuyo p-valor es menor a $\alpha=0.05$ (nivel de significación) y en las que, en consecuencia, podemos rechazar la $H_0$ de que su coeficiente es 0, son: `lcavol`, `lweight`, `svi`. Efectivamente:
+
+```{r}
+summary(regr.pros)$coef[,4]<0.05
+```
+
+Este resultado se obtiene también calculando los intervalos de confianza al 95% de los parámetros de cada variable, y descartando aquellas en que su intervalo contiene el 0.
+
+```{r}
+confint(regr.pros)
+```
+
+Modelamos de nuevo considerando únicamente esas 3 variables significativas al 95% de confianza.
+
+```{r}
+regr.pros2 <- lm(lpsa~lcavol+lweight+svi,prostate)
+predict(regr.pros2, x0pros, interval="prediction")
+predict(regr.pros2, x1pros, interval="prediction")
+```
+
+Los dos intervalos son iguales, ya que hemos eliminado la variable `age` de la predicción por ser su estadístico *t* (parcial) no significativo. Este intervalo CI 95% es ligeramente más amplio que el obtenido anteriormente para una edad dentro del rango de la variable age. El ajuste es mejor considerando la totalidad de variables conjuntamente. Esto también se observa analizando los coeficientes de determinación (mayor en el primer modelo con todas las variables regresoras) y el error estándar total (menor en el primer modelo) de los resumenes de las regresiones:
+
+```{r}
+summary(regr.pros)$r.squared #R^2^con todos los predictores
+summary(regr.pros)$sigma #sigma con todos los predictores
+summary(regr.pros2)$r.squared #R^2^con los predictores parcialmente significativos
+summary(regr.pros2)$sigma #sigma con los predictores parcialmente significativos
+```
+
+Sin embargo, el intervalo CI 95% del primer modelo pero con un valor predictor fuera de rango (age=20) es mayor que el segundo modelo que considera solo las variables significativas, es decir, hace 'peores' predicciones, con mayor error.  
+*Podemos concluir que es mejor considerar solo las variables significativas tomándolas una a una que hacer predicciones sobre valores extrapolados, fuera del rango de valores sobre los que se ha construido el modelo.*
+
+### Ejercicio 4.2
+
+**Using the `teengamb` data, fit a model with `gamble` as the response and the other variables as predictors. **
+
+```{r}
+data(teengamb,package="faraway")
+attach(teengamb)
+colnames(teengamb)
+regr.gamb <- lm(gamble~sex+status+income+verbal,teengamb)
+sumary(regr.gamb)
+```
+**(a) Predict the amount that a male with average (given these data) status, income and verbal score would gamble along with an appropriate 95% CI**
+
+```{r}
+x0gamb <- data.frame( sex=0, status=median(status), 
+                      income=median(income), verbal=median(verbal))
+predict(regr.gamb,x0gamb,interval="prediction")
+```
+
+**(b) Repeat the prediction for a male with maximal values (for this data) of status, income and verbal score. Which CI is wider and why is this result expected?**
+
+```{r}
+x1gamb <- data.frame(sex=0, status=max(status),
+                     income=max(income),verbal=max(verbal))
+predict(regr.gamb,x1gamb,interval="prediction")
+```
+
+El CI 95% del segundo modelo es más amplio puesto que las predicciones se hacen sobre los valores extremos de las variables, y el intervalo de confianza se hace más amplio a medida que nos alejamos de los valores medios.
+
+
+**(c) Fit a model with `sqrt(gamble)` as the response but with the same predictors. Now predict the response and give a 95% prediction interval for the individual in (a). Take care to give your answer in the original units of the response.**
+
+```{r}
+regr.gamb2 <- lm(sqrt(gamble)~sex+status+income+verbal,teengamb)
+predict(regr.gamb2,x0gamb,interval="prediction")
+```
+
+El CI 95% de la raíz cuadrada de gamble obtenido es $-1.179373$ a $7.490718$. Si elevamos al cuadrado:
+
+```{r}
+predict(regr.gamb2,x0gamb,interval="prediction")^2
+```
+
+El intervalo es más estrecho.
+
+```{r}
+x2gamb <- data.frame(sex=1,status=20,income=1,verbal=10)
+predict(regr.gamb2,x2gamb,interval="prediction")^2
+```
+
+Lo que no parece muy lógico, ya que el límite inferior del intervalo es superior al extremo superior.
+
+### Ejercicio 4.3
+
+**The snail dataset contains percentage water content of the tissues of snails grown under three different levels of relative humidity and two different temperatures**
+
+**(a) Can you use the command xtabs yo predict the water content for a temperature of 25ºC and a humidity of 60%? Explain.**
+
+```{r}
+data(snail,package="faraway")
+colnames(snail)
+xtabs(water~temp+humid,snail)/4
+```
+
+La tabla devuelve la media para cada una de las 6 combinaciones posibles (de tamaño $n=4$) de las observaciones de temperatura y humedad, pero no sirve para hacer predicciones sobre valores intermedios ya que no nos basamos en ningún modelo. No sabemos cómo varía la vaiable respuesta cuando se modifican los distintos valores de las variables predictoras temp y humid.
+
+No obstante, se puede por ejemplo representar los valores y, si estos muestran alguna tendencia clara, realizar algun tipo de extrapolación usando las medias de las 3 variables, tomando solo los valores del data frame con la variable `humid < 100`, aprovechando que la media de `temp` y de `humid` son los valores que se piden.
+
+```{r}
+mytable <- xtabs(water~temp+humid,snail)/4
+colnames(mytable) <- c(45,75,100)
+rownames(mytable) <- c(20, 30)
+matplot (t(mytable), type="l")
+```
+
+```{r}
+xtabs(mean(water[humid<100])~mean(temp[humid<100])+mean(humid[humid<100]),snail)
+```
+
+**(b) Fit a regression model with the water content as the response and the temperature and humidity as predictors. Use this model to predict the water content for a temperature of 25 C and a humidity of 60%?**
+```{r}
+regr.wat<-lm(water~temp+humid,snail)
+x0wat<-data.frame(temp=25,humid=60)
+predict(regr.wat, x0wat, interval="prediction")
+```
+**(c) Use this model to predict water content for a temperature of 30 C and a humidity of 75%? Compare your prediction to the prediction from (a). Discuss the relative merits of these two predictions.**
+
+```{r}
+x1wat<-data.frame(temp=30,humid=75)
+predict(regr.wat,x1wat,interval="prediction")
+```
+
+La predicción según el modelo de regresión (82.62) es superior a la hallada considerando las medias (78.25). El primer modelo se basa en un $n$ mayor (el conjunto de las 24 observaciones) mentras que la media solo considera el $n$ (=4) para esa combinació de temp y humid, y concluyo que el error de la predicción basada en la media es mayor. Además no considera las covarianzas de las dos variables predictoras, y la covarianza de ellas con la variables respuesta.
+
+**(d) The intercept in your model is 52.6%. Give two values of the predictors for which this represents the predicted response. Is your answer unique? Do you think this represents a reasonable prediction?**
+
+```{r}
+x3wat<-data.frame(temp=0,humid=0)
+predict(regr.wat,x3wat,interval="prediction")
+```
+Si asigno 0 a los dos predictores, `temp` y `humid`, el modelo predice un valor respuesta que coincide con el coeficiente de intercepción ya que water = ß~0~ + ß~1~temp + ß~2~humid. También podría indicarse cualquier valor de temp y humid tal que  ß~1~temp + ß~2~humid = 0,
+
+0.18333 temp = 0.47349 humid
+
+temp = 2.58272 humid
+
+Si tomamos una humid de 75, temp es 193.704, y:
+
+```{r}
+x4wat<-data.frame(temp=193.704,humid=75)
+predict(regr.wat,x4wat,interval="prediction")
+```
+
+Pero las predicciones no son razonables porque los predictores (uno o ambos) están muy alejados de las observaciones sobre las que se ha ajustado el modelo. Sería una extrapolación cuantitativa, y una mala predicción.
+
+**(e) For a temperature of 25◦C, what value of humidity would give a predicted response of 80% water content.**
+
+Fijándome en las predicciones anteriores para `temp=30`, veo que para obtener `water=80`, humid debe ser <75, y pruebo con un vector de humedades para ver de frma 'manual' qué valor de humid se acerca más a 80:
+
+```{r}
+x5wat<-data.frame(temp=25,humid=c(61:70))
+predict(regr.wat,x5wat,interval="prediction")
+```
+
+Para una respuesta de 80, con temp=30, humedad se situa entre 67 y 68 % de humedad relativa. Para afinar:
+
+```{r}
+x6wat<-data.frame(temp=25,humid=seq(67.1,68.0,0.1))
+predict(regr.wat,x6wat,interval="prediction")
+```
+
+El predictor `humid` que ofrece un valor de `water` más cercano a 80 es 67.5.

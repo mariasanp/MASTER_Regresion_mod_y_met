@@ -1,0 +1,576 @@
+---
+title: "Estimación del modelo Lieal"
+author: "Alex Sánchez y Francesc Carmona"
+output:
+  prettydoc::html_pretty:
+    theme: tactile
+    highlight: vignette
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r paquetes}
+if(!(require(compareGroups))) install.packages("compareGroups")
+if(!(require(faraway))) install.packages("faraway")
+if(!(require(GGally))) install.packages("GGally")
+if(!(require(devtools))) install.packages("devtools")
+if(!(require(rootSolve))) install.packages("rootSolve")
+if(!(require(mosaicCalc))) install.packages("mosaicCalc")
+if(!(require(printr))) {
+  install.packages('printr',
+            type = 'source',
+            repos = c('http://yihui.name/xran', 'http://cran.rstudio.com')
+  )
+}
+```
+
+
+# Ejercicios del libro de Faraway
+
+## Capítulo 2
+
+En los ejercicios de este capítulo empezamos a ajustar y analizar modelos lineales.
+
+### Ejercicio 1 
+**The dataset teengamb concerns a study of teenage gambling in Britain. Fit a regression model with the expenditure on gambling as the response and the sex, status, income and verbal score as predictors. Present the output.**
+
+```{r}
+data(teengamb,package="faraway")
+teengamb$sex <- as.factor(teengamb$sex)
+lmod <- lm(gamble ~ sex + status + income + verbal, data = teengamb)
+lmodsum <- summary(lmod)
+print(lmodsum)
+```
+También podemos utilizar la versión más compacta del paquete `faraway`.
+```{r}
+sumary(lmod)
+```
+
+
+a. **What percentage of variation in the response is explained by these predictors?** 
+
+Nos piden el valor de $R^2$.
+```{r}
+lmodsum$r.squared*100
+```
+
+b. **Which observation has the largest (positive) residual? Give the case number.**
+
+```{r}
+res <- residuals(lmod)
+max(res)
+```
+Número del caso con el mayor residuo:
+```{r}
+which.max(res)
+```
+
+c. **Compute the mean and median of the residuals.** 
+
+```{r}
+mean(res) 
+median(res)
+```
+Observemos que el valor medio de los residuos es casi cero, como esperamos que sea.
+
+Igualmente como se ve en los apartados siguientes esperamos que los residuos sean independientes de la variable explicativa y del modelo ajustado. De no ser así podríamos suponer que el modelo no está bien ajustado o que faltan predictores.
+
+d. **Compute the correlation of the residuals with the ﬁtted values.**
+```{r}
+cor(fitted(lmod),res)
+```
+
+e. **Compute the correlation of the residuals with the income.**
+
+```{r}
+cor(res,teengamb$income)
+```
+
+f. **For all other predictors held constant, what would be the difference in predicted expenditure on gambling for a male compared to a female?**
+
+Si el modelo contiene la variable `sexo` el coeficiente de regresión de dicha variable es precisamente lo que se pide.
+
+```{r}
+sumary(lmod)
+lmod$coefficients["sex1"]
+```
+
+Observemos que podemos verificar esta propiedad probando con unos valores concretos **aunque ello no es mas que una comprobación**.
+
+Utilizaremos las medias de variables `status, income, verbal` y asignaremos a `sex` valores 1 y 0 respectivamente.
+
+```{r}
+data2predict0 <- data.frame(sex="0", status=mean(teengamb$status),
+                            income=mean(teengamb$income), verbal=mean(teengamb$verbal))
+data2predict1 <- data.frame(sex="1", status=mean(teengamb$status),
+                            income=mean(teengamb$income), verbal=mean(teengamb$verbal))
+predicted0<- predict(lmod, newdata=data2predict0)
+predicted1<- predict(lmod, newdata=data2predict1)
+predicted1-predicted0
+```
+Como se ve la diferencia coincide con el coeficiente de regresión de la variable `sex`.
+
+### Ejercicio 2 
+**The dataset `uswages` is drawn as a sample from the Current Population Survey in 1988. Fit a model with weekly wages as the response and years of education and experience as predictors. Report and give a simple interpretation to the regression coefﬁcient for years of education. Now ﬁt the same model but with logged weekly wages. Give an interpretation to the regression coefﬁcient for years of education. Which interpretation is more natural?**
+
+```{r}
+data(uswages, package="faraway")
+head(uswages,n=2)
+```
+
+En primer lugar ajustamos un modelo de regresión para la variable ` `wage` con las variables `educ+exper`.
+
+```{r}
+lmodw <- lm(wage ~ educ + exper,data=uswages)
+summary(lmodw)
+lmodw$coef
+```
+El modelo de obtenido indica que el sueldo semanal (wage) depende de los años de educación (educ) y los de experiencia (exper) según la forma:
+
+$wage = -242.80 + 51.18*educ + 9.77*exper$
+
+La interpretación es que el salario se incrementa en $51.18$ unidades por cada año más de educación y en $9.77$ por cada año adicional de experiencia.
+
+Si se realiza una transformación logarítmica en base $2$ del salario semanal y se ajusta un nuevo modelo de regresión se obtienen los resultados siguientes:
+
+```{r}
+wglogfit <- lm(log2(wage) ~ educ + exper, uswages) 
+summary(wglogfit)
+```
+
+$\textrm{log}_2(wage) = 6.71 + 0.13*educ + 0.026*exper$
+
+Se puede dar una interpretación parecida aunque ahora por cada cambio en $1/0.130573=7.66$  años de educacion o en $1/0.026082=38.34$ de experiencia, es decir cambios que provocan un aumento de una unidad en la variable respuesta, la interpretación es que ésta se doblará.
+Es decir para doblar el salario hacen falta $7.66$ años más de educación o $38.34$ años más de experiencia.
+
+Si utilizamos logaritmos neperianos (base $e$), el modelo es:
+```{r}
+logfit <- lm(log(wage) ~ educ + exper, uswages) 
+summary(logfit)
+```
+
+Cuando aumentamos en una unidad la variable `educ`, el salario se incrementa en un `exp(0.090506)=1.094728`. Es decir, por cada año de educación adicional, el salario crece un $9.47\%$.
+
+Cuando el valor de $\hat\beta$ es pequeño, podemos hacer la aproximación $e^{\hat\beta}\approx 1+\hat\beta$, de forma que
+$$
+(e^{\hat\beta}-1)\times 100 \approx \hat\beta \times 100
+$$
+Así podemos interpretar el producto $\hat\beta\times 100$ como el porcentaje por el que aumenta (aproximadamente) la respuesta por cada unidad de la variable predictora. En este caso $\hat\beta\times 100=9.05\%$ de aumento en salario por cada año de educación.
+
+Resumiendo, aunque es posible interpretar los modelos transformados parece que el primero ofrece una explicación más intuitiva. Otra cosa será cual es el modelo más correcto.
+
+### Ejercicio 4 
+**The dataset `prostate` comes from a study on 97 men with prostate cancer who were due to receive a radical prostatectomy. Fit a model with `lpsa` as the response and `lcavol` as the predictor. Record the residual standard error and the $R^2$. **
+
+**Now add `lweight`, `svi`, `lbph`, `age`, `lcp`, `pgg45` and `gleason` to the model one at a time. For each model record the residual standard error and the $R^2$. Plot the trends in these two statistics.**
+
+```{r}
+data(prostate,package="faraway")
+# attach(prostate)
+lmodp1 <- lm(lpsa ~ lcavol, prostate)
+lmodp1sum <- summary(lmodp1)
+lmodp1sum
+#Error estándar de los residuos, sigma:
+sigma1 <- lmodp1sum$sigma
+sigma1
+#Coeficiente de determinación R^2
+R21 <- lmodp1sum$r.squared
+R21
+#Coeficiente de determinación ajustado R^2 adjusted
+R21adj <- lmodp1sum$adj.r.squared
+R21adj
+```
+
+Añadimos una a una las variables al modelo. Guardaremos los valores de $R²$ y $\hat \sigma$ para estudiarlos más tarde.
+
+```{r}
+coefsPar<- data.frame(Variables=1, Sigma=sigma1, R2=R21, R2adj= R21adj)
+add2coefs<- function (nVar, sigmaerr, R2, R2adj, coefsPar){
+  coefsPar[nVar,1]= nVar
+  coefsPar[nVar,2]= sigmaerr
+  coefsPar[nVar,3]= R2 
+  coefsPar[nVar,4]= R2adj
+  return (coefsPar)
+  }
+```
+
+
+```{r}
+#sigma y R^2
+lmodp2 <- update(lmodp1, . ~ . + lweight, prostate)
+# lmodp2 <- lm(lpsa~lcavol+lweight,prostate) 
+lmodp2sum <- summary(lmodp2)
+sigma2 <- lmodp2sum$sigma
+R22 <- lmodp2sum$r.squared
+R22adj <- lmodp2sum$adj.r.squared
+coefsPar<- add2coefs (2,sigma2, R22, R22adj, coefsPar)
+
+lmodp3 <- update(lmodp2, . ~ . + svi, prostate)
+# lmodp3 <- lm(lpsa~lcavol+lweight+svi,prostate)
+lmodp3sum <- summary(lmodp3)
+sigma3 <- lmodp3sum$sigma
+R23 <- lmodp3sum$r.squared
+R23adj <- lmodp3sum$adj.r.squared
+coefsPar<- add2coefs (3, sigma3, R23, R23adj, coefsPar)
+
+lmodp4 <- update(lmodp3, . ~ . + lbph, prostate)
+# lmodp4 <- lm(lpsa~lcavol+lweight+svi+lbph,prostate) 
+lmodp4sum <- summary(lmodp4)
+sigma4 <- lmodp4sum$sigma
+R24 <- lmodp4sum$r.squared
+R24adj <- lmodp4sum$adj.r.squared
+coefsPar<- add2coefs (4, sigma4, R24, R24adj, coefsPar)
+
+lmodp5 <- update(lmodp4, . ~ . + age, prostate)
+lmodp5sum <- summary(lmodp5)
+sigma5 <- lmodp5sum$sigma
+R25 <- lmodp5sum$r.squared
+R25adj <- lmodp5sum$adj.r.squared
+coefsPar<- add2coefs (5, sigma5, R25, R25adj, coefsPar)
+
+lmodp6 <- update(lmodp5, . ~ . + lcp, prostate)
+lmodp6sum <- summary(lmodp6)
+sigma6 <- lmodp6sum$sigma
+R26 <- lmodp6sum$r.squared
+R26adj <- lmodp6sum$adj.r.squared
+coefsPar<- add2coefs (6, sigma6, R26, R26adj, coefsPar)
+
+lmodp7 <- update(lmodp6, . ~ . + pgg45, prostate)
+lmodp7sum <- summary(lmodp7)
+sigma7 <- lmodp7sum$sigma
+R27 <- lmodp7sum$r.squared
+R27adj <- lmodp7sum$adj.r.squared
+coefsPar<- add2coefs (7, sigma7, R27, R27adj, coefsPar)
+
+lmodp8 <- update(lmodp7, . ~ . + gleason, prostate)
+lmodp8sum <- summary(lmodp8)
+sigma8 <- lmodp8sum$sigma
+R28 <- lmodp8sum$r.squared
+R28adj <- lmodp8sum$adj.r.squared
+coefsPar<- add2coefs (8, sigma8, R28, R28adj, coefsPar)
+```
+
+Podemos ver el efecto de aumentar el número de variables sobre $R^2$, $\bar{R}^2$ ajustado y $\hat \sigma$
+```{r}
+show(coefsPar)
+matplot(coefsPar[,2:4], type="b", xlab="Number of variables", 
+        main=expression("Changes in " ~ R^2 * "," ~ R^2 ~ "adj and" ~ hat(sigma) ~ "as number of variables increases"),
+        cex.main=0.9, col=2:4, lty=2:4)
+legend("topright", c(expression(hat(sigma)), expression(R^2), expression(R^2 ~ "adj")), col=c(2,3,4),lty=2:4)
+```
+
+
+
+### Ejercicio 5 
+**Using the `prostate` data, plot `lpsa` against `lcavol`. Fit the regressions of `lpsa` on `lcavol` and `lcavol` on `lpsa`. Display both regression lines on the plot. At what point do the two lines intersect?** 
+
+Algunos habéis propuesto una solución intuitiva que da un resultado desconcertante:
+
+```{r}
+require(faraway)
+with(prostate, plot(lpsa ~ lcavol))
+abline(recta1 <- lm(lpsa ~ lcavol, prostate))
+abline(recta2 <- lm(lcavol ~ lpsa, prostate))
+```
+
+Es decir las rectas son casi paralelas
+```{r}
+recta1
+recta2
+```
+
+¿Donde está el problema?
+Hay que entender que al cambiar los "roles" de las variables los coeficiente de `recta2` hacen referencia a unos ejes distintos que a los de la `recta1` (la *Y* pasa a ser la *X* y la *X* pasa a ser la *Y*).
+Si lo escribimos queda más claro.
+Hagámoslo cambiando los nombres de las variables para simplificar la escritura, es decir pongamos: $X$=`lcavol`, $Y$=`lpsa`.
+
+La primera ecuación, que se obtiene al hacer lm(Y~X) es:
+$$
+Y= a+ b\cdot X
+$$
+y la segunda que se obtiene haciendo lm(X~Y)
+$$
+X = a'+ b'\cdot Y
+$$
+Ahora bien, el gráfico quiero hacerlo sobre los mismos ejes por lo que la segunda ecuación también se tiene que reescribir como una función $Y$ de $X$ en vez de su forma actual, $X$ sobre $Y$.
+
+Para ello invertimos la expresión
+$$
+\frac{(X-a')}{b'} = Y \rightarrow Y = \frac{-a'}{b'} +\frac{1}{b'}\cdot X.  
+$$
+Es decir que la segunda recta no es la que se obtiene de hacer lm(X~Y) sino el resultado de poner ésta en una forma comparable a la primera.
+
+Si ahora lo representamos el resultado coincide con el que esperaríamos.
+
+```{r}
+with(prostate, plot(lpsa ~ lcavol))
+abline(v=0, lty=2)
+abline(recta1)
+a0 <- recta2$coefficients[1]
+b0 <- recta2$coefficients[2]
+a2 <- -a0/b0
+b2 <- 1/b0
+abline(a2, b2)
+```
+
+Las dos rectas de regresión se denominan recta de $Y$ sobre $X$, o $Y/X$ y recta de regresión de $X$ sobre $Y$. Un resultado "conocido" es que ambas se cortan en los valores medios de $X$ y de $Y$.
+
+```{r}
+with(prostate, plot(lpsa ~ lcavol))
+abline(recta1)
+abline(a2, b2)
+abline(h=mean(prostate$lpsa), lty=2)
+abline(v=mean(prostate$lcavol), lty=2)
+```
+
+Podríamos haber calculado el punto de corte resolviendo el sistema de ecuaciones definido por las dos rectas (ejercicio: *hacedlo*)
+
+$$
+\begin{eqnarray*} 
+Y &=& a_1+b_1\cdot X \\ 
+Y &=& a_2+b_2\cdot X 
+\end{eqnarray*}
+$$
+
+
+$$
+\begin{eqnarray*} 
+Y-b_1\cdot X &=& a_1 \\
+Y-b_2\cdot X &=& a_2
+\end{eqnarray*}
+$$
+    
+O en notación matricial:
+
+  \[ \mathbf{A}= \left( \begin{array}{cc}
+           -b_1 & 1 \\
+           -b_2 & 1 
+             \end{array} 
+           \right)\] 
+
+ \[\mathbf{X} =  \left( \begin{array}{c}
+                      X \\
+                      Y
+                      \end{array} 
+                      \right)\] 
+  
+ \[ \mathbf{B}=
+  \left( \begin{array}{c}
+        a_1 \\
+        a_2
+        \end{array} 
+        \right)\] 
+  
+La solución del sistema de ecuaciones 
+$$
+    \mathbf{A X = B}
+$$
+seria, $\mathbf{Y= A^{-1} B}$, que se resuelve facilmente en R:
+  
+Cuidado con los nombres de los coeficientes. Si las rectas que hemos representado finalmente son `recta1` y `a2 + b2*x` entonces los coeficientes deben ser los de la `recta1` es decir:
+
+```{r}
+a1 <- coef(recta1)[1]
+b1 <- coef(recta1)[2]
+A <- matrix (c(-b1, 1, -b2, 1), byrow=TRUE, nrow=2)
+print(A)
+B <- c(a1, a2)
+Y <- solve(A, B)
+Y
+```
+
+El resultado del sistema coincide, como es de esperar segun la teoría, con las medias de $X$ e $Y$:
+
+```{r}
+print(c(mean(prostate$lcavol), mean(prostate$lpsa)))
+```
+
+
+### Ejercicio 6 
+**Thirty samples of cheddar cheese were analyzed for their content of acetic acid, hydrogen sulﬁde and lactic acid. Each sample was tasted and scored by a panel of judges and the average taste score produced. Use the cheddar data to answer the following:**
+
+```{r}
+data(cheddar,package="faraway")
+attach(cheddar)
+```
+
+a. **Fit a regression model with `taste` as the response and the three chemical contents as predictors. Report the values of the regression coefﬁcients.** 
+
+```{r}
+lmodch <- lm(taste ~ Acetic + H2S + Lactic, cheddar)
+lmodch$coef
+```
+
+b. **Compute the correlation between the ﬁtted values and the response. Square it. Identify where this value appears in the regression output.**
+```{r}
+(c <- cor(fitted(lmodch),taste))
+(c2 <- c^2)
+sumary(lmodch)
+```
+El cuadrado del coeficiente de correlación coincide, en este caso, con el coeficiente de determinación.
+
+c. **Fit the same regression model but without an intercept term. What is the value of R2 reported in the output? Compute a more reasonable measure of the goodness of ﬁt for this example**.
+
+```{r}
+lcheddar<- lm(taste ~ 0 + Acetic + H2S + Lactic, data=cheddar)
+lcheddar
+summary(lcheddar)$r.squared
+```
+
+Vemos que el valor del coeficiente de determinación es superior al del primer modelo. 
+El asunto es que las fórmulas para calcular el coeficiente de determinación en un modelo con intercepción y sin intercepción son distintas.
+
+Se puede consultar el problema en 
+
+[Regression through the Origin](https://web.ist.utl.pt/~ist11038/compute/errtheory/,regression/regrthroughorigin.pdf)
+
+```{r}
+summary(lmodch)$r.squared
+cor(predict(lmodch),cheddar$taste)^2  # Coincide
+summary(lcheddar)$r.squared
+# Este es el valor de R^2 en modelos con no intercept (segun Faraway):
+cor(predict(lcheddar),cheddar$taste)^2  
+# Este es el valor de R^2 en modelos con no intercept (segun R y segun J.G. Eisenhauer):
+sum(predict(lcheddar)^2)/sum(cheddar$taste^2) 
+```
+
+Conclusión, si calculamos el coeficiente de determinación con R en un modelo sin intercept, no podemos compararlo con el valor en un modelo con intercept.
+
+d. **Compute the regression coefﬁcients from the original ﬁt using the QR decomposition showing your R code**
+
+Realizamos el calculo de los beta de la forma tradicional y luego mediante el uso de la Descomposición QR, para comprobar que el resultado es el mismo:
+
+```{r}
+x <- model.matrix(~Acetic+H2S+Lactic,cheddar)
+y <- cheddar$taste
+qrx <- qr(x)
+dim(qr.Q(qrx)) 
+(f <- t(qr.Q(qrx))%*%y)
+backsolve(qr.R(qrx),f)
+```
+
+Valores que, efectivamente coinciden con el modelo ajustado por mínimos cuadrados
+
+```{r}
+sumary(lmodch)
+```
+
+
+### Ejercicio 7  
+**An experiment was conducted to determine the effect of four factors on the resistivity of a semiconductor wafer. The data is found in wafer where each of the four factors is coded as−or + depending on whether the low or the high setting for that factor was used. Fit the linear model `resist ~ x1 + x2 + x3 + x4`**. 
+
+Este ejercicio contiene un aspecto interesante y es que se trabaja con un modelo lineal en que la matriz de diseño representa condiciones experimentales descritas por variables binarias.
+
+```{r}
+data(wafer,package="faraway")
+attach(wafer)
+show(wafer)
+lmodw <- lm(resist ~ x1 + x2 + x3 + x4,wafer)
+sumary(lmodw)
+```
+
+a. **Extract the X matrix using the model.matrix function. Examine this to determine how the low and high levels have been coded in the model.** 
+```{r}
+mod <- model.matrix(lmodw)
+mod
+```
+
+Comparando la matriz de diseño con los datos se deduce que los niveles bajos ("-") se han codificado como ceros y los altos como unos.
+
+b. **Compute the correlation in the X matrix. Why are there some missing values in the matrix?** 
+
+La razón de los valores nulos en la matriz y del aviso del programa, es porque los valores del vector de intercepto son todo 1 (es una constante) y por tanto el vector carece de desviación.
+
+```{r}
+cor(mod)
+cor(mod[,2:5])
+```
+
+c. **What difference in resistance is expected when moving from the low to the high level of x1?** 
+
+La diferencia de resistencia entre los niveles de la variable `x1` es el coeﬁciente de regresión de la misma. Es decir el valor esperado de resistencia del agua cuando `x1` es alto es $25.8$ unidades más que cuando `x1` es baja.
+
+d. **Reﬁt the model without x4 and examine the regression coefﬁcients and standard errors? What stayed the same as the original ﬁt and what changed?** 
+
+Los coeficientes de regresión de las variables que permanecen en el modelo  no cambian pero la resistencia estimada es mayor sin `x4`. Esto se explica por el signo negativo del coeficiente de regresión de `x4` en el modelo original que se interpreta como que, cuando cuando el nivel de dicha variable es alto la resistencia baja en 14.5 unidades
+
+```{r}
+wfitX4<-lm(resist~x1+x2+x3,wafer)
+sumary(wfitX4)
+sumary(lmodw)
+```
+
+e. **Explain how the change in the regression coefﬁcients is related to the correlation matrix of X.** 
+
+Los elementos no diagonales de la matriz de correlación son ceros, lo que indica que la covarianza entre el vector `x4` y cada uno de los vectores `x1`, `x2`, `x3` es cero también. Si se centra cada uno de los predictores, la matriz de diseño es ortogonal. Las estimaciones de los parámetros (es decir los coeficientes de regresión) no cambian si no se incluye `X4` pero sí que cambia la varianza de errores al perder un término en la matriz de correlación.
+
+# Ejercicios de libro de Carmona
+## Capítulo 2
+### Ejercicio 2.1 
+**Una variable Y toma los valores y1, y2 y y3 en función de otra variable X con los valores x1, x2 y x3. Determinar cuales de los siguientes modelos son lineales y encontrar, en su caso, la matriz de diseño para x1=1, x2=2 y x3=3.**
+
+a. $y_i = \beta_0 + \beta_1 x_1 + \beta_2 (x^2 _i -1) + e_i$
+
+Es un modelo lineal y la matriz de diseño en el caso particular es:
+```{r}
+casoA <- matrix(c(1,1,(1^2-1),1,2,(2^2-1),1,3,(3^2-1)), nrow=3, byrow=T)
+print(casoA)
+```
+
+
+b. $y_i = \beta_0 + \beta_1 x_1 + \beta_2 e^{x_i} + e_i$
+
+Es un modelo lineal y la matriz de diseño en el caso particular es:
+```{r}
+casoB <- matrix(c(1,1,exp(1),1,2,exp(2),1,3,exp(3)), nrow=3, byrow=T) 
+print(casoB)
+```
+
+c. $y_i =  \beta_1 x_1 (\beta_2 tang (x_i)) + e_i$
+
+No es un modelo lineal
+
+### Ejercicio 2.4
+**Cuatro objetos cuyos pesos exactos son $\beta_1$, $\beta_2$, $\beta_3$ y $\beta_4$ han sido pesados en una balanza de platillos de acuerdo con el siguiente esquema. Hallar las estimaciones de cada $\beta_i$ y de la varianza del error.**
+```{r}
+X <- matrix(c(1,1,1,1,1,-1,1,1,1,0,0,1,1,0,0,-1,1,0,1,1,1,1,-1,1), nrow=6, byrow=T)
+print(X)
+y <- c(9.2,8.3,5.4,-1.6,8.7,3.5) 
+y
+r <- qr(X)$rank; r
+XtX <- t(X) %*% X
+Xty <- t(X) %*% y
+```
+
+Para calcular la estimación de los parámetros se procede de la siguiente manera
+```{r}
+beta <- solve(XtX, Xty) 
+beta
+e <- y - X %*% beta
+SCR <- sum(e^2) 
+# SCR <- t(y) %*% y - t(beta) %*% t(X) %*% y 
+SCR
+```
+
+Estimación de la varianza del error: $\hat\sigma^2 =SCR/(n−r)$
+
+```{r}
+SCR/(length(y)-r)
+```
+
+También podríamos haber utilizado la función `lm()` sin intercept.
+
+```{r}
+x1 <- X[,1]; x2 <- X[,2]; x3 <- X[,3]; x4 <- X[,4]
+g <- lm(y ~ 0 + x1 + x2 + x3 + x4)
+coef(g)
+summary(g)$sigma^2
+```
+

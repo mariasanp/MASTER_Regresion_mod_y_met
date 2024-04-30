@@ -1,0 +1,390 @@
+---
+title: "Inferencia"
+author: "Francesc Carmona y Alex Sanchez"
+date: "4 de Noviembre 2019"
+output:
+  prettydoc::html_pretty:
+    theme: tactile
+    highlight: vignette
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r paquetes, include=FALSE}
+if(!(require(faraway))) install.packages("faraway")
+if(!(require(devtools))) install.packages("devtools")
+if(!(require(printr))) {
+  install.packages(
+    'printr',
+    type = 'source',
+    repos = c('http://yihui.name/xran', 'http://cran.rstudio.com')
+  )
+}
+```
+
+
+
+# Ejercicios del libro de Faraway
+
+## Capítulo 3
+
+### Problema 3.1. pag. 48
+
+**For the *prostate data*, fit a model with *lpsa* as the response and the other variables as predictors:**
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+
+```{r}
+data(prostate, package="faraway")
+head(prostate)
+```
+```{r}
+model<-lm(lpsa~lcavol+lweight+age+lbph+svi+lcp+gleason+pgg45,data=prostate)
+summary(model)
+```
+
+#### a) Intervalos de confianza para el parámetro del predictor `age`
+
+**Compute 90 and 95% CIs for the parameter associated with `age`. Using just these intervals, what could we have deduced about the *p*-value for age in the regression summary?**
+
+Con los datos del resumen podemos calcular manualmente los intervalos de confianza al 90% y al 95% para el parámetro del predictor `age`:
+
+```{r}
+-0.019637+c(-1,1)*qt(.95,88)*0.011173
+-0.019637+c(-1,1)*qt(.975,88)*0.011173
+```
+
+La misma operación la hubiéramos podido hacer automáticamente:
+
+```{r}
+confint(model,level=.90)
+confint(model)
+```
+
+Dado que el intevalo de confianza al 95% incluye el 0 pero el del 90% no, podíamos haber deducido que el parámetro de `age` es significativamente diferente de cero para una significación del 10% pero no para una significación del 5%. Si volvemos al resumen del modelo (más arriba) vemos que el p-valor para este parémetro es de 0.08229 (entre el 5% y el 10%), lo que nos lleva a la misma conclusión.
+
+*Nota:* El nivel de significación se debe elegir antes de realizar el contraste.
+
+#### b) Región de confianza conjunta
+
+**Compute and display a 95% joint confidence region for the parameters associated with `age` and `lbph`. Plot the origin on this display. The location of the origin on the display tells us the outcome of a certain hypothesis test. State that test and its outcome.**
+
+Con el paquete `ellipse` obtenemos la región de confianza conjunta de los parámetros `age` y `lbph` a partir del modelo. Entonces representamos la elipse que limita esta región, el centro de la elipse (que corresponde a la estimación puntual de los dos parametros) y el origen $(0,0)$.
+
+```{r,message=FALSE,warning=FALSE}
+require(ellipse)
+```
+```{r}
+plot(ellipse(model,c(4,5)), type="l")
+points(coef(model)[4], coef(model)[5])
+points(0,0)
+text(0,0, labels="(0,0)", pos=3)
+```
+
+Comprobar si el punto $(0,0)$ se encuentra dentro de esta región de confianza es equivalente al siguiente contraste de hipótesis:
+
+$$H_0: \beta_{age}=\beta_{lbph}=0$$
+$$H_1: \beta_{age}\ne0\text{ o }\beta_{lbph}\ne0$$
+
+Entonces, aceptamos la hipótesis nula y concluímos que no tenemos razones para aceptar que los dos parámetros sean significativamente diferentes de cero si se consideran conjuntamente.
+
+#### c) Contraste de permutaciones para el parámetro `age`
+
+**In the text, we made a permutation test corresponding to the $F$-test for the significance of all the predictors. Execute the permutation test corresponding to the $t$-test for age in this model. (Hint: `summary(g)$coef[4,3]` gets you the $t$-statistic you need if the model is called `g`.)**
+
+Planteamos el siguiente contraste de hipótesis:
+
+$$H_0: \beta_{age}=0$$
+$$H_1: \beta_{age}\ne0$$
+
+Siguiendo aproximadamente el ejemplo de la página 41 establecemos la semilla del generador de números pseudo-aleatorios para hacer reproducibles los resultados, aunque no es imprescindible:
+
+```{r}
+set.seed(123)
+```
+
+Ajustaremos el modelo 4000 veces, pero sustituyendo la variable `age` por una muestra con repetición de sus valores para simular una muestra de la distribución del parámetro de 
+`age`.
+
+```{r}
+nreps<-4000
+tstats<-numeric(nreps) # vector amb nreps zeros
+for (i in 1:nreps){
+  modela<-lm(lpsa~lcavol+lweight+sample(age)+lbph+svi+lcp+gleason+pgg45,data=prostate)
+  tstats[i]<-summary(modela)$coef[4,3]
+}
+```
+
+Ahora que ya tenemos la muestra simulada calculamos el $p$-valor como la proporción de observaciones de la muestra que tienen un valor absoluto mayor que el estimado. Aquí haremos la comparación en valor absoluto porque el contraste es bilateral, a diferencia del ejemplo de la página 41 que era unilateral.
+
+```{r}
+mean(abs(tstats) > abs(summary(model)$coef[4,3]))
+```
+
+Vemos que el valor obtenido ahora es muy parecido a 0.08229, que es el que obtuvimos en el contraste paramétrico ($t$-test) que aparece en el sumario del modelo.
+
+####  d) Comparación de modelos
+
+**Remove all the predictors that are not significant at the 5% level. Test this model against the original model. Which model is preferred?**
+
+
+Eliminamos los predictores no significativos al 5% y volvemos a ajustar el modelo:
+
+```{r}
+modelb<-lm(lpsa~lcavol+lweight+svi,data=prostate)
+summary(modelb)
+```
+
+Contrastamos los dos modelos o, más exactamente, contrastamos la hipótesis nula que todos los parámetros de los predictores que hemos eliminado del modelo son cero.
+
+```{r}
+anova(modelb,model)
+```
+
+Obtenemos un $p$-valor superior a $0.2$ lo que nos lleva a optar por el modelo más simple porque la diferencia con el que tiene más predictores no es significativa.
+
+### Problema 3.2. pag. 49
+
+**Thirty samples of cheddar cheese were analyzed for their content of acetic acid, hydrogen sulfide and lactic acid. Each sample was tasted and scored by a panel of judges and the average taste score produced. Use the *cheddar* data to answer the following:**
+
+Cargamos los datos.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+
+```{r}
+data(cheddar, package="faraway")
+head(cheddar)
+```
+
+#### a) Ajustar el modelo
+
+**Fit a regression model with taste as the response and the three chemical contents as predictors. Identify the predictors that are statistically significant at the 5% level.**
+
+```{r}
+modch <- lm(taste ~ Acetic + H2S + Lactic, data=cheddar)
+summary(modch)
+```
+Los predictores estadísticamente significativos al 5% son la concentración de ácido sulfídrico `H2S` y la de ácido láctico `Lactic` o, mejor dicho, los logaritmos de estas  dos concentraciones.
+
+#### b) Ajustar el modelo con escalas originales
+
+**`Acetic` and `H2S` are measured on a log scale. Fit a linear model where all three predictors are measured on their original scale. Identify the predictors that are statistically significant at the 5% level for this model.**
+
+```{r}
+modchee<-lm(taste ~ I(exp(Acetic)) + I(exp(H2S)) + Lactic, data=cheddar)
+summary(modchee)
+```
+
+En este modelo el único predictor significativo al 5% es la concentración de ácido láctico.
+
+#### c) F-test
+
+**Can we use an F-test to compare these two models? Explain. Which model provides a better fit to the data? Explain your reasoning.**
+
+El contraste F no sirve para contrastar modelos no anidados, es decir, no podemos contrastar dos modelos si no es que todos los predictores de uno de ellos forman parte del grupo de predictores del otro. En este caso tenemos predictores diferentes aunque midan la misma magnitud (uno en escala lineal y el otro en escala logarítmica).
+
+Sin embargo, podemos utilizar otros criterios para escoger. En este caso el modelo con los datos medidos en la escal logarítmica (tal como viene en el *data.frame* original) explica una parte ligeramente mayor de la variancia del modelo, por lo que debería ser preferible.
+
+También habría que estudiar las hipótesis del modelo.
+
+#### d) Incremento
+
+**If `H2S` is increased $0.01$ for the model used in (a), what change in the taste would be expected?**
+
+El parámetro correspondiente al predictor `H2S` en el primer modelo es $3.9118$, es decir, por cada unidad de aumento de la concentración de ácido sulfídrico (en escala logarítmica) la medida de gusto aumentará en $3.9118$ unidades. Entonces por un aumento del ácido sulfídrico de $0.01$ el gusto aumentará en $3.9118\times 0.01=0.039118$ unidades.
+
+#### e) Logaritmo
+
+**What is the percentage change in `H2S` on the original scale corresponding to an additive increase of 0.01 on the (natural) log scale?**
+
+Un aumento de `H2S` de $0.01$ supone multiplicar la concentración de ácid sulfídrico por $e^{0.01}=1.01005$, o sea, un aumento del $1.01$%.
+
+### Problema 3.3. pag 49
+
+**Using the `teengamb` data, fit a model with `gamble` as the response and the other variables as predictors.**
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+```{r}
+data(teengamb, package="faraway")
+head(teengamb)
+model <- lm(gamble ~ sex + status + income + verbal, data=teengamb)
+```
+
+#### a) Variables significativas
+
+**Which variables are statistically significant at the 5% level?**
+
+```{r}
+summary(model)
+```
+
+Son significativas al 5% el sexo `sex` y los ingresos `income`.
+
+#### b) Interpretación del coeficiente de `sex`
+
+**What interpretation should be given to the coefficient for `sex`?**
+
+El coeficiente de un predictor mide el aumento de la predicción de la variable explicada por cada aumento de una unidad de ese predictor manteniendo constantes los otros predictores. La variable sexo es una variable categórica, pero codificada numéricamente con el significado de 0=masculino y 1=femenino. Entonces, un aumento de una unidad corresponde a pasar de masculino a femenino y el coeficiente de la variable indica cuanto valdrá más la variable explicada para las mujeres que para los hombres. Entonces, el coeficiente, que vale $-22.11$, nos indica que el modelo predice que una mujer gastará en juego $22.11$ libras menos al año que un hombre en las mismas circunstancias.
+
+#### c) Modelo simple
+
+**Fit a model with just income as a predictor and use an F-test to compare it to the full model.**
+
+Ajustamos el modelo simple:
+```{r}
+model0 <- lm(gamble ~ income, data=teengamb)
+summary(model0)
+```
+Y lo contrastamos con el modelo completo con un test $F$:
+```{r}
+anova(model0,model)
+```
+
+Con un $p$-valor del $0.0117$ rechazamos la hipótesis nula que los parámetros de las variables no incluídas en el modelo simple son cero. Por tanto, esta simplificación no es justificable.
+
+## Problema 3.4. pag 49
+
+**Using the** `sat` **data: **
+
+Cargamos los datos.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+```{r}
+data(sat, package="faraway")
+str(sat)
+```
+
+#### a) Modelo
+
+**Fit a model with `total` sat score as the response and `expend`, `ratio` and `salary` as predictors. Test the hypothesis that $\beta_{salary} = 0$. Test the hypothesis that $\beta_{salary} =\beta_{ratio}=\beta_{expend}= 0$. Do any of these predictors have an effect on the response?**
+
+Ajustamos el modelo:
+```{r}
+model <- lm(total ~ expend + ratio + salary, data=sat)
+summary(model)
+```
+
+La hipótesis que $\beta_{salary}=0$ la contrasta el resumen del modelo con un test $t$. Podemos leer el $p$-valor en la columna `Pr(>|t|)` y vemos que es $0.0667$. Con una significación del 5% no podemos rechazar la hipótesis nula y concluímos que este predictor no tiene efecto significativo en la respuesta.
+
+La hipótesis nula $\beta_{salary}=\beta_{ratio}=\beta_{expend}=0$ también se contrasta con un test $F$ del que leemos su $p$-valor en la última fila del resumen. En este caso $p$-valor$=0.01209$ y concluímos que considerado en conjunto el modelo es significativo (al 5%) aunque ninguno de los predictores considerado aisladamente lo sea.
+
+#### b) Añadir `takers` al modelo
+
+**Now add `takers` to the model. Test the hypothesis that $\beta_{takers}=0$. Compare this model to the previous one using an F-test. Demonstrate that the F-test and t-test here are equivalent.**
+
+Añadimos el predictor `takers` al modelo.
+
+```{r}
+modelt <- update(model, ~ . + takers, data=sat)
+summary(modelt)
+```
+
+El resultado del contraste $\beta_{takers}=0$ lo leemos en el resumen y vemos que rechaza la hipótesis nula con un $p$-valor de `2.61e-16`. 
+
+También podemos comparar ambos modelos con un test $F$:
+```{r}
+anova(model,modelt)
+```
+
+Por supuesto, obtenemos una significación con el mismo $p$-valor.
+
+# Otros ejercicios
+
+### Problema 1
+
+**En los ejemplos 5.3.2 y 5.6.3 del libro de Carmona y con los datos del diseño cross-over simplificado considerar el modelo en el que el efecto de la interacción es distinto cuando primero se administra el tratamiento $\textbf{a}$ y a continuación el tratamiento $\textbf{b}$, que cuando se hace al revés. Es decir, hay dos parámetros distintos $\gamma_{ab}$ y $\gamma_{ba}$.**
+
+**Contrastar en ese modelo la hipótesis $H_0 : \gamma_{ab} = \gamma_{ba}$. Comprobar primero que es una hipótesis contrastable.**
+
+Como se explica en el ejemplo 5.6.3 del libro de Carmona, en este diseño los parámetros son: $\mu$, $\alpha$, $\beta$, $\gamma_{ab}$ y $\gamma_{ba}$. De modo que la matriz de diseño reducida (un sola fila para cada situación experimental) es
+$$
+\textbf{X}_R = 
+\left(
+\begin{array}{ccccc}
+1 & 1 & 0 & 0 & 0 \\
+1 & 0 & 1 & 1 & 0 \\
+1 & 0 & 1 & 0 & 0 \\
+1 & 1 & 0 & 0 & 1
+\end{array}
+\right)
+$$
+
+La hipótesis a contrastar es $H_0 : \gamma_{ab} = \gamma_{ba}$ que es equivalente a $H_0 : \gamma_{ab} - \gamma_{ba} = 0$ y en forma vectorial:
+$$
+H_0: (0,0,0,1,-1) \left( \begin{array}{c} \mu \\ \alpha \\ \beta \\ \gamma_{ab} \\ \gamma_{ba} \end{array} \right) = 0
+$$
+
+Así pues habrá que comprobar en primer lugar que la hipótesis es contrastable, es decir, que la función paramétrica asociada es estimable. 
+
+Por definición, se trata de comprobar que $\textbf{a}'=(0,0,0,1,-1)$ es combinación lineal de las filas de la matriz de diseño. Esto se puede hacer a ojo, si somos hábiles. En este caso, si a la segunda fila le restamos la tercera, le sumamos la primera y le restamos la cuarta obtenemos $\textbf{a}'$.
+
+Cuando el ojo no funciona podemos probar con el cálculo del rango. Si añadimos la fila $\textbf{a}'$ a la matriz de diseño (reducida o no) y dicha fila es combinación lineal de las otras, el rango de la matriz se debe conservar. En caso contrario esa fila no será combinación lineal de las filas de la matriz de diseño y la función paramétrica no será estimable. Veamos el cálculo con R gracias a la función `rbind()` que permite añadir una fila (o varias) a una matriz.
+```{r}
+Xr <- c(1,1,0,0,0,
+        1,0,1,1,0,
+        1,0,1,0,0,
+        1,1,0,0,1)
+Xr <- matrix(Xr, nrow=4, byrow = T)
+qr(Xr)$rank
+a <- c(0,0,0,1,-1)
+qr(rbind(Xr,a))$rank
+```
+
+El rango es 4 en la matriz de diseño y en la matriz con la fila $\textbf{a}'$ de modo que la función paramétrica es estimable.
+
+Otra forma de comprobar si la función paramétrica es estimable es utilizar la propiedad 3 de la página 46 del libro de Carmona. Sin embargo este cálculo en un ordenador acostumbra a ser numéricamente aproximado.
+```{r}
+library(MASS)
+XtX <- crossprod(Xr)  # t(Xr) %*% Xr
+as.numeric(t(a) %*% ginv(XtX) %*% XtX )
+```
+
+Finalmente procedemos al contraste de la hipótesis. Como se trata de una única función paramétrica estimable, podemos hacerlo con la $t$ de Student o, más sencillo, como un contraste de modelos.
+
+Los datos (cuidado con el orden) están  en la Tabla 5.2 de la página 78 del libro de Carmona:
+```{r}
+y <- c(17,34,26,10,19,17,8,16,13,11,
+       17,41,26,3,-6,-4,11,16,16,4,
+       21,20,11,26,42,28,3,3,16,-10,
+       10,24,32,26,52,28,27,28,21,42)
+X <- c(rep(c(1,1,0,0,0),10),
+       rep(c(1,0,1,1,0),10),
+       rep(c(1,0,1,0,0),10),
+       rep(c(1,1,0,0,1),10))
+X <- matrix(X, nrow=40, byrow = T)
+g <- lm(y ~ 0 + X)
+```
+
+Si la hipótesis nula es cierta, como interacción solo tendremos un único parámetro y entonces la matriz de diseño es:
+```{r}
+X0 <- c(rep(c(1,1,0,0),10),
+        rep(c(1,0,1,1),10),
+        rep(c(1,0,1,0),10),
+        rep(c(1,1,0,1),10))
+X0 <- matrix(X0, nrow=40, byrow = T)
+g0 <- lm(y ~ 0 + X0)
+```
+y el contraste entre los dos modelos es:
+```{r}
+anova(g0,g)
+```
+
+Como el $p$-valor es superior a 0.05 no hay motivo para rechazar la hipótesis de igualdad de los parámetros $\gamma_{ab}$ y $\gamma_{ba}$.

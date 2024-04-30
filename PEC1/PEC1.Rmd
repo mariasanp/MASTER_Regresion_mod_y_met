@@ -1,0 +1,353 @@
+---
+title: "PEC1"
+author: "María Sánchez Paniagua"
+date: "2024-04-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ejercicio 1
+
+The Framingham Heart Study (Levy, 1999) recogió datos sobre los factores de riesgo cardiovascular y el
+seguimiento a largo plazo de casi 5.000 residentes de la ciudad de Framingham (Massachusetts).
+La muestra se compone de 4240 individuos, 1944 hombres y 2490 mujeres y 16 variables. Aunque el
+objetivo del estudio era predecir si el paciente tenía un riesgo a 10 años de sufrir en el futuro una
+cardiopatía coronaria, en este ejercicio se va a intentar predecir la presión sanguínea sistólica, factor de
+riesgo cardiovasvular, a partir de algunas variables registradas.
+Las variables que se utilizarán en los ejercicios son las siguientes:
+
+
+sysBP (Systolic blood pressure): Presión arterial sistólica variable Y que se pretende predecir.
+BMI (Body mass index): Índice de masa corporal
+age: edad
+male: sexo (1: varón; 0: mujer)
+totChol: colesterol total
+heartRate: pulsaciones por minuto
+currentSmoker: Fumadxr (1: fumadxr; 0: no fumadxr)
+cigsPerDay: cigarrillos por día
+diabetes: (0:no; 1:sí)
+glucose: glucosa en sangre
+
+(a) Estimar un modelo de regresión lmod_inicial que permita obtener la influencia, si existe, únicamente
+del índice de masa corporal (BMI) sobre la presión arterial sistólica (sysBP) y si esta relación
+varía con el sexo (male). Comentar el resultado de la regresión, en cuanto a la relación y si ésta
+varía con el sexo. Comentar también si la bondad de ajuste lineal es suficiente o si es necesario
+incluir más variables para explicar la varianza de sysBP.
+Nota: Se recomienda eliminar las observaciones con valores faltantes (missings).
+
+```{r}
+# Cargar datos y eliminar valores faltantes)
+data_framingham <- read.csv("C:/Users/Usuario/Desktop/Máster/Asignaturas/Regresión Modelos y Métodos/PEC1/framingham.csv")
+data_framingham <- na.omit(data_framingham)
+
+# Primer modelo de regresión lineal
+lmod_inicial <- lm(sysBP ~ BMI + male + BMI:male, data = data_framingham)
+
+# Ver el resumen del modelo
+summary(lmod_inicial)
+
+
+```
+
+
+(b) Dibujar un gráfico de dispersión con las rectas de regresión de hombres y mujeres según el modelo
+del apartado anterior.
+
+```{r}
+with(data_framingham, {
+  plot(BMI, sysBP, col = ifelse(male == 1, "blue", "red"), xlab = "Índice de Masa Corporal (BMI)", ylab = "Presión Sanguínea Sistólica (sysBP)", main = "Regresión de sysBP sobre BMI por Sexo")
+  legend("topright", legend = c("Hombres", "Mujeres"), col = c("blue", "red"), pch = 16)
+  abline(lm(sysBP ~ BMI, data = data_framingham, subset = male == 0), col = "red")
+  abline(lm(sysBP ~ BMI, data = data_framingham, subset = male == 1), col = "blue")
+})
+
+```
+
+
+(c) Hallar los intervalos de confianza al 99% para los coeficientes del modelo del apartado (a).
+Calcular una estimación de la varianza del error en el mismo modelo.
+
+```{r}
+# Intervalos de confianza para los coeficientes del modelo inicial
+confint(lmod_inicial, level = 0.99)
+
+# Estimación de la varianza del error
+sigma_squared <- sum(residuals(lmod_inicial)^2) / lmod_inicial$df.residual
+sigma_squared
+
+```
+
+
+(d) Además de las variables contempladas anteriormente, se cree que hay otras variables clínicas y
+demográficas que predicen linealmente la presión arterial sistólica como son la edad, el colesterol
+total, las pulsaciones por minuto, si se es o no fumador y el número de cigarrillos por día, si se
+es diábetico y la glucosa en sangre. Como se ha visto en los apartados anteriores la relación entre
+sysBP y BMI puede depender del sexo.
+Estimar un modelo de regresión lineal múltiple lmod_ampliado para predecir sysBP que tenga como
+variables predictoras: BMI, age, sexo, totChol, heartRate, currentSmoker, cigsPerDay, diabetes,
+glucose y la interacción BMI con sexo.
+¿Es significativo el modelo obtenido? Plantear la hipótesis nula y la alternativa del test. ¿Qué test
+estadístico se emplea para contestar a esta pregunta?
+Explicar el resultado del coeficiente de la regresora cigsPerDay y su significación en el contexto de
+este modelo.
+
+
+```{r}
+# Modelo ampliado con más variables y una interacción
+lmod_ampliado <- lm(sysBP ~ BMI + age + male + totChol + heartRate + currentSmoker + cigsPerDay + diabetes + glucose + BMI:male, data = data_framingham)
+
+# Resumen del modelo ampliado
+summary(lmod_ampliado)
+
+# Realizar un test ANOVA 
+anova(lmod_inicial, lmod_ampliado)
+
+```
+
+La hipótesis nula sería que no hay relación lineal significativa entre las variables predictoras y la presión arterial sistólica (sysBP). La hipótesis alternativa sería que al menos una de las variables predictoras tiene una relación lineal significativa con sysBP.
+
+Respectoa la significación, el valor de p del estadístico F es prácticamente cero, lo que indica que el modelo en su conjunto es significativo. El estadóstico F del ANOVA nos permite comprobar la significancia del modelo completo. El F valor tan pequeño indica que hay una diferencia significativa entre los dos modelos.
+
+(e) Contrastar si nos podemos quedar con el modelo más reducido que no tiene en cuenta las variables
+regresoras: currentSmoker, cigsPerDay y diabetes. Escribir en forma paramétrica las hipótesis del
+test H0 y H1 de este contraste. Estimar un nuevo modelo lmod_reducido en el que no intervengan
+estas variables.
+
+```{r}
+# Modelo reducido excluyendo 'currentSmoker', 'cigsPerDay', y 'diabetes'
+lmod_reducido <- lm(sysBP ~ BMI + age + male + totChol + heartRate + glucose + BMI:male, data = data_framingham)
+
+# Resumen del modelo reducido
+summary(lmod_reducido)
+
+# Test ANOVA para comparar el modelo reducido y el ampliado
+anova(lmod_reducido, lmod_ampliado)
+
+```
+
+Las hipótesis son:
+\[H_0: \beta_{\text{currentSmoker}} = \beta_{\text{cigsPerDay}} = \beta_{\text{diabetes}} = 0\]
+
+\[H_1: \text{Al menos uno de } \beta_{\text{currentSmoker}}, \beta_{\text{cigsPerDay}}, \text{ o } \beta_{\text{diabetes}} \neq 0\]
+
+Según el ANOVA a ambos modelos no hay diferencias significativas y por tanto podemos obviar esas variables del modelo.
+
+
+(f) Con el modelo elegido, calcular un intervalo de predicción al 95% de un individuo con los siguientes
+valores de la variables predictoras: BMI=29, age=64, male=0, totChol=200, heartRate=70,
+glucose=96. Comprobar previamente que los valores observados no suponen una extrapolación.
+Para ello utilizaremos el elipsoide que se forma con el leverage máximo.
+
+
+```{r}
+# Calcular leverage máximo
+max_leverage <- max(hatvalues(lmod_reducido))
+
+# Verificar si los valores dados están dentro del elipsoide formado por el leverage máximo
+if (max_leverage > 0.5) {
+  warning("Extrapolación potencial: leverage máximo es mayor que 0.5")
+} else {
+  print("No hay extraploación potencial: leverage máximo es menor o igual que 0.5")
+}
+
+
+install.packages("car")
+library(car)
+# Visualizar elipsoide de leverage máximo
+influenceIndexPlot(lmod_reducido, id = max_leverage, main = "Elipsoide de leverage máximo")
+
+```
+
+
+```{r}
+# Calcular intervalo de predicción para un individuo específico
+newdata <- data.frame(BMI = 29, age = 64, male = 0, totChol = 200, heartRate = 70, glucose = 96)
+
+# Usar el modelo reducido o el que se prefiera basado en análisis previos
+predict(lmod_reducido, newdata, interval = "prediction", level = 0.95)
+
+```
+
+
+# Ejercicio 2
+
+En este ejercicio se pretende mejorar el modelo del ejercicio anterior haciendo algunas pruebas diagnósticas.
+
+
+(a) Obtener con la función plot() los gráficos básicos de diagnóstico del modelo lmod_reducido del
+apartado (e) del ejercicio anterior. Explicar los cuatro gráficos.
+Comprobar con algún test las hipótesis de homocedasticidad y normalidad de los errores. Utilizar
+dos tests distintos para cada una de las dos hipótesis.
+
+
+
+```{r}
+# Cargar el modelo reducido
+# Suponiendo que el modelo se ha guardado en una variable llamada lmod_reducido
+
+# Gráficos de diagnóstico
+par(mfrow = c(2, 2))
+plot(lmod_reducido)
+
+# Test de homocedasticidad usando el test de Breusch-Pagan y el test de White
+library(lmtest)
+bptest(lmod_reducido)
+
+# Test de normalidad usando el test de Shapiro-Wilk y el test de Anderson-Darling
+shapiro.test(residuals(lmod_reducido))
+library(nortest)
+ad.test(residuals(lmod_reducido))
+
+```
+
+Explicación de los gráficos:
+
+Residuales vs Valores Ajustados: Este gráfico ayuda a verificar la homocedasticidad de los errores. Los residuos deben estar distribuidos de forma aleatoria y sin formar patrones.
+Normal Q-Q: Este gráfico es crucial para verificar si los residuales siguen una distribución normal. Los puntos deben seguir la línea diagonal.
+Scale-Location (o Spread-Location): Similar al primer gráfico, pero muestra la raíz cuadrada de los residuos estandarizados, proporcionando otra visualización de la homocedasticidad.
+Residuals vs Leverage: Ayuda a identificar observaciones influyentes. Los puntos a tener en cuenta son aquellos que están lejos del centro de la horizontal (alta influencia).
+
+
+(b) Realizar un estudio descriptivo de la variable sysBP, especialmente sobre su distribución. Buscar
+una transformación de esta variable que mejore sus propiedades.
+Sugerencia: Utilizar la transformación log(x + a) basándose en el modelo reducido obtenido en el
+ejercicio anterior. Para ello, la función logtrans() del paquete MASS nos puede ayudar.
+
+```{r}
+# Estudio descriptivo de sysBP
+summary(data_framingham$sysBP)
+hist(data_framingham$sysBP, breaks = 30, main = "Histograma de sysBP", xlab = "sysBP")
+
+# Transformación logarítmica sugerida
+library(MASS)
+sysBP <- data_framingham$sysBP
+transformed_sysBP <- logtrans(sysBP, lambda = 1)  # ajustar el valor de lambda según sea necesario
+
+# Verificar la distribución transformada
+hist(transformed_sysBP, breaks = 30, main = "Histograma de sysBP Transformada", xlab = "sysBP Transformada")
+
+
+```
+
+## c
+
+(c) Estimar el modelo reducido con la transformación obtenida en el apartado anterior y comprobar si
+se ha mejorado en la homocedasticidad y en la normalidad.
+
+
+```{r}
+# Estimación del modelo con la variable transformada
+lmod_transformado <- lm(transformed_sysBP ~ predictors, data = dataset)  # Ajustar 'predictors' según las variables utilizadas
+
+# Verificación de mejoras en homocedasticidad y normalidad
+par(mfrow = c(2, 2))
+plot(lmod_transformado)
+
+```
+
+## d
+
+(d) Estudiar la presencia de valores atípicos, de alto leverage y/o puntos influyentes en el último modelo
+con la variable respuesta transformada.
+Dibujar un gráfico resumen.
+
+
+```{r}
+# Análisis de outliers y puntos con alto leverage
+plot(lmod_transformado, which = 5)  # Gráfico de Cook's distance para identificar puntos influyentes
+```
+
+
+## e
+
+(e) Hallar los tres puntos más influyentes del apartado anterior. ¿Son también atípicos (outliers)?
+Estimar un nuevo modelo sin esos 3 puntos y comprobar otra vez la homocedasticidad y la normalidad
+
+```{r}
+# Identificar y remover los tres puntos más influyentes
+influential <- cooks.distance(lmod_transformado) > 4 / nrow(dataset)  # ajustar según el tamaño de muestra
+dataset_clean <- dataset[!influential, ]
+
+# Re-estimar el modelo sin esos puntos
+lmod_final <- lm(transformed_sysBP ~ predictors, data = dataset_clean)
+
+# Verificación final de homocedasticidad y normalidad
+par(mfrow = c(2, 2))
+plot(lmod_final)
+
+```
+
+
+
+# Ejercicio 3 (20 pt.)
+
+Con el modelo reducido del apartado (e) del ejercicio 2 contestar las siguientes cuestiones:
+(a) Hallar la matriz del diseño del modelo. ¿Cual es su rango? ¿Coincide con el número de parámetros
+βi? ¿Tendremos problemas para estimar combinaciones lineales de los βi?
+
+```{r}
+# Asumimos que el modelo reducido es lmod_reducido
+
+# Obtener la matriz de diseño del modelo
+design_matrix <- model.matrix(lmod_reducido)
+
+# Calcular el rango de la matriz de diseño
+matrix_rank <- qr(design_matrix)$rank
+
+# Número de parámetros en el modelo (incluyendo el término intercepto)
+num_parameters <- length(coef(lmod_reducido))
+
+# Comparar rango con número de parámetros
+matrix_rank == num_parameters
+
+```
+
+
+(b) Discutir qué soluciones existen en el sistema de ecuaciones normales cuando el número de parámetros
+es igual al rango de la matriz de diseño y cuando son diferentes.
+
+
+La relación entre el rango de la matriz de diseño y el número de parámetros tiene implicaciones directas en la estimabilidad de los coeficientes:
+
+Si el rango es igual al número de parámetros, el sistema es justamente determinado y todos los parámetros pueden ser estimados sin problemas.
+Si el rango es menor que el número de parámetros, esto indica multicolinealidad, lo que significa que algunos parámetros no son identificables de forma única y dependen linealmente de otros.
+
+(c) Comprobar que los coeficientes obtenidos con las ecuaciones normales son iguales que los obtenidos
+en el ejercicio 2(e).
+
+
+```{r}
+# Resolver las ecuaciones normales directamente
+normal_eq_solution <- solve(t(design_matrix) %*% design_matrix) %*% t(design_matrix) %*% data_framingham$sysBP
+
+# Extraer los coeficientes estimados del modelo
+lm_coefficients <- coef(lmod_reducido)
+
+# Comparar ambos métodos
+all.equal(normal_eq_solution, lm_coefficients, check.attributes = FALSE)
+
+```
+
+
+(d) Obtener la estimación de la varianza del error σ2 y un intervalo de confianza al 95% suponiendo
+normalidad.
+
+```{r}
+# Estimación de la varianza del error
+residuals <- residuals(lmod_reducido)
+estimated_variance <- sum(residuals^2) / lmod_reducido$df.residual
+
+# Intervalo de confianza para la varianza del error
+alpha <- 0.05  # Nivel de confianza del 95%
+chi_sq_lower <- qchisq(alpha / 2, df = lmod_reducido$df.residual)
+chi_sq_upper <- qchisq(1 - alpha / 2, df = lmod_reducido$df.residual)
+
+variance_conf_interval <- (sum(residuals^2) / c(chi_sq_upper, chi_sq_lower))
+
+# Mostrar resultados
+list(estimated_variance = estimated_variance, variance_conf_interval = variance_conf_interval)
+
+```
