@@ -1,0 +1,391 @@
+---
+title: "Tarea A1"
+author: "María Sánchez Paniagua"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ejercicios iniciales
+
+1. Con los datos de los buitres leonados:
+
+
+```{r}
+heartbpm <- c(47.53, 48.27, 49.51, 51.09, 52.57, 54.30,
+54.25, 54.45, 57.95, 60.92, 61.91, 77.92,
+82.07, 82.95, 83.94, 86.96, 90.42, 92.93, 100.05)
+metabol <- c(6.15, 6.31, 6.43, 6.78, 6.86, 6.90, 7.37, 7.41,
+8.24, 9.22, 8.16, 12.61, 15.26, 13.09, 14.59,
+17.35, 18.57, 19.00, 20.70)
+vulture <- data.frame(heartbpm, metabol)
+rm(heartbpm, metabol)
+attach(vulture)
+
+```
+
+
+(a) Dibujar la nube de puntos con la instrucción plot().
+
+
+```{r}
+plot(vulture$heartbpm, vulture$metabol, xlab = "Frecuencia Cardíaca", ylab = "Tasa metabólica", main = "Relación entre Frecuencia Cardíaca y Tasa metabólica")
+```
+
+
+(b) Añadir la recta de regresión con la instrucción abline().
+
+
+```{r}
+plot(vulture$heartbpm, vulture$metabol, xlab = "Frecuencia Cardíaca", ylab = "Tasa metabólica", main = "Relación entre Frecuencia Cardíaca y Tasa metabólica")
+model <- lm(metabol ~ heartbpm, data = vulture)
+abline(model, col = "red")
+```
+
+
+
+(c) Dibujar el gráfico de residuos vs. valores ajustados con la función plot() aplicada al objeto
+lm.
+
+```{r}
+plot(residuals(model) ~ fitted(model), main = "Residuos vs. Valores Ajustados")
+abline(h = 0, col = "red")
+```
+
+
+(d) Añadir al gráfico de dispersión del apartado (a) la curva de regresión parabólica.
+Nota: Esto último se puede hacer con la instrucción lines() o con la instrucción curve( , add = TRUE).
+
+```{r}
+
+plot(vulture$heartbpm, vulture$metabol, xlab = "Frecuencia Cardíaca", ylab = "Tasa metabólica", main = "Relación entre Frecuencia Cardíaca y Tasa metabólica")
+
+# Añadir la recta de regresión y la curva de regresión parabólica
+model <- lm(metabol ~ heartbpm, data = vulture)
+model + abline(model, col = "red")
+
+model_quad <- lm(metabol ~ heartbpm + I(heartbpm^2), data = vulture)
+model_quad + curve(predict(model_quad, newdata = data.frame(heartbpm = x)), add = TRUE, col = "blue")
+
+```
+
+
+
+2. Con los datos de la tensión arterial sistólica y la edad de los 69 pacientes que podemos encontrar
+en la web de www.fisterra.com
+
+https://www.fisterra.com/formacion/metodologia-investigacion/tecnicas-regresion-regresion-lineal-simple/
+
+calcular los coeficientes de regresión de la recta mínimo cuadrática.
+
+
+```{r}
+library(RCurl)
+library(XML)
+
+url <- "https://www.fisterra.com/formacion/metodologia-investigacion/tecnicas-regresion-regresion-lineal-simple/"
+html_content <- getURL(url)
+tables <- readHTMLTable(html_content)
+datos <- tables[[2]]
+
+# Habría que reestructurar el dataframe
+
+#modelo <- lm(tension_sistolica ~ edad, data = datos)
+#summary(modelo)
+```
+
+
+
+# Ejercicios del Libro de Faraway
+
+1. (Ejercicio 1 cap. 1 pág. 12)
+The dataset teengamb concerns a study of teenage gambling in Britain. Make a numerical and
+graphical summary of the data, commenting on any features that you find interesting. Limit the
+output you present to a quantity that a busy reader would find sufficient to get a basic understanding
+of the data.
+
+
+```{r}
+#chooseCRANmirror()
+library(faraway)
+
+
+data(teengamb, package = "faraway")
+
+# Resumen numérico
+summary(teengamb)
+
+# Medias de las variables numéricas
+mean(teengamb$gamble)
+mean(teengamb$income)
+mean(teengamb$verbal)
+
+# Desviaciones estándar
+sd(teengamb$gamble)
+sd(teengamb$income)
+sd(teengamb$verbal)
+
+# Gráficos
+# Histograma de la cantidad apostada
+hist(teengamb$gamble, main="Histograma")
+
+# Diagrama de caja de ingresos
+boxplot(teengamb$income, main="Diagrama de Cajas")
+
+# Gráfico de dispersión entre cantidad apostada y verbal
+plot(teengamb$verbal, teengamb$gamble, main="Gráfico de dispersión")
+
+```
+
+
+2. (Ejercicio 2 pág. 12)
+The dataset uswages is drawn as a sample from the Current Population Survey in 1988. Make a
+numerical and graphical summary of the data as in the previous question.
+
+```{r}
+# Carga del dataset uswages
+data(uswages, package = "faraway")
+
+# Resumen numérico
+summary(uswages)
+
+# Medias de las variables numéricas relevantes
+mean(uswages$wage)
+mean(uswages$education)
+
+# Desviaciones estándar
+sd(uswages$wage)
+sd(uswages$education)
+
+# Gráficos
+# Histograma de salarios
+hist(uswages$wage, main="Histograma", xlab="Salario")
+
+
+```
+
+  
+
+
+# Ejercicios del libro de Carmona
+
+
+
+### 3. (Ejercicio 1.3 del Capítulo 1 página 24)
+Consideremos el problema de tráfico planteado en el apartado 1.2 de este capítulo, con la variable
+independiente densidad y la variable dependiente raíz cuadrada de la velocidad. Con los datos
+proporcionados en la tabla 1.1
+
+```{r}
+
+dens <- c(12.7,17.0,66.0,50.0,87.8,81.4,75.6,66.2,81.1,62.8,77.0,89.6,
+18.3,19.1,16.5,22.2,18.6,66.0,60.3,56.0,66.3,61.7,66.6,67.8)
+vel <- c(62.4,50.7,17.1,25.9,12.4,13.4,13.7,17.9,13.8,17.9,15.8,12.6,
+51.2,50.8,54.7,46.5,46.3,16.9,19.8,21.2,18.3,18.0,16.6,18.3)
+rvel <- sqrt(vel)
+```
+
+realizar el siguiente proceso:
+
+
+(a) Dibujar la nube de puntos y la recta que pasa por los puntos (12.7,62.4) y (87.8,12.4).Dibujar el gráfico de los residuos con la densidad y el gráfico con las predicciones. Calcular la suma de cuadrados de los residuos.
+
+
+
+```{r}
+plot(dens, rvel, main = "Nube de Puntos y Recta Específica", xlab = "Densidad", ylab = "Raíz cuadrada de Velocidad")
+abline(lm(rvel ~ dens), col = "red") # Ajusta y dibuja una recta de regresión lineal
+
+
+# Dibujar el gráfico de los residuos
+model <- lm(rvel ~ dens) 
+residuos <- residuals(model)
+plot(dens, residuos, main = "Gráfico de Residuos con Densidad", xlab = "Densidad", ylab = "Residuos")
+
+# Dibujar el gráfico con las predicciones
+newdata <- data.frame(dens = dens)
+predicciones <- predict(model, newdata)
+plot(dens, rvel, main = "Nube de Puntos y Recta Específica", xlab = "Densidad", ylab = "Raíz cuadrada de Velocidad")
+abline(lm(rvel ~ dens), col = "red")  # Recta de regresión
+lines(dens, predicciones, col = "blue")  # Línea de predicciones
+
+# Calcular la suma de cuadrados de los residuos
+suma_cuadrados_residuos <- sum(residuos^2)
+cat("Suma de cuadrados de los residuos:", suma_cuadrados_residuos, "\n")
+
+```
+
+
+
+(b) Hallar la recta de regresión simple. Dibujar el gráfico de los residuos con la densidad y el
+gráfico con las predicciones. Calcular la suma de cuadrados de los residuos.
+
+La recta de regresión simple:
+
+```{r}
+model_simple <- lm(rvel ~ dens)
+summary(model_simple) 
+plot(dens, rvel, main = "Recta de Regresión Simple", xlab = "Densidad", ylab = "Raíz cuadrada de Velocidad")
+abline(model_simple, col = "blue")
+```
+
+Para los residuos:
+
+```{r}
+residuos_simple <- resid(model_simple)
+plot(dens, residuos_simple, main = "Residuos de la Regresión Simple", xlab = "Densidad", ylab = "Residuos")
+```
+
+La suma de cuadrados de los residuos:
+
+```{r}
+sum(residuos_simple^2)
+```
+
+
+
+(c) Mejorar el modelo anterior considerando una regresión parabólica. Dibujar el gráfico de los
+residuos con la densidad y el gráfico con las predicciones. Calcular la suma de cuadrados de
+los residuos.
+
+
+```{r}
+mparabolic <- lm(rvel ~ dens + I(dens^2))
+summary(mparabolic)
+```
+
+Para los residuos:
+
+```{r}
+residuosp <- resid(mparabolic)
+plot(dens, residuosp, main = "Residuos de la Regresión Parabólica", xlab = "Densidad", ylab = "Residuos")
+```
+
+La suma de cuadrados de los residuos:
+
+```{r}
+sum(residuosp^2)
+```
+
+
+
+(d) Calcular la capacidad de la carretera o punto de máximo flujo. Recordar que flujo = vel × densidad.
+
+
+```{r}
+flujo <- vel * dens
+max_flujo <- max(flujo)
+max_flujo_dens <- dens[which.max(flujo)]
+max_flujo
+max_flujo_dens
+```
+
+
+## 4. (Ejercicio 1.4 del Capítulo 1 página 24)
+La siguiente tabla contiene los mejores tiempos conseguidos en algunas pruebas de velocidad en
+atletismo en los Juegos Olímpicos de Atlanta:
+
+
+```{r}
+distancia <- c(100, 200, 400, 800, 1500, 5000, 10000, 42195)
+tiempo_hombres <- c(9.84, 19.32, 43.19, 102.58, 215.78, 787.96, 1627.34, 7956.00)
+tiempo_mujeres <- c(10.94, 22.12, 48.25, 117.73, 240.83, 899.88, 1861.63, 8765.00)
+```
+
+
+Si tomamos como variable regresora o independiente la distancia (metros) y como variable respuesta
+o dependiente el tiempo (segundos):
+
+
+(a) Calcular la recta de regresión simple con los datos de los hombres y dibujarla. Dibujar el gráfico de los residuos con la distancia y el gráfico con las predicciones. Calcular la suma de cuadrados de los residuos y el R2
+
+```{r}
+modelo_hombres <- lm(tiempo_hombres ~ distancia)
+summary(modelo_hombres)
+
+plot(distancia, tiempo_hombres, main = "Recta de Regresión para Hombres")
+abline(modelo_hombres, col = "green")
+
+# Residuos con la distancia
+residuos_hombres <- resid(modelo_hombres)
+plot(distancia, residuos_hombres, main = "Residuos de la Regresión para Hombres", ylab = "Residuos")
+suma_cuadrados_residuos_hombres <- sum(residuos_hombres^2)
+
+# Suma de cuadrados de los residuos
+suma_cuadrados_residuos_hombres <- sum(residuos_hombres^2)
+suma_cuadrados_residuos_hombres
+
+# Cálculo del R^2
+r2_hombres <- summary(modelo_hombres)$r.squared
+r2_hombres
+```
+
+
+(b) Repetir el apartado anterior utilizando los logaritmos de las variables tiempo y distancia.
+
+```{r}
+modelo_hlog <- lm(log(tiempo_hombres) ~ log(distancia))
+summary(modelo_hlog)
+
+# Regresión con logaritmos para hombres
+summary(modelo_hlog)
+plot(log(distancia), log(tiempo_hombres), main = "Recta de Regresión Logarítmica para Hombres")
+abline(modelo_hlog, col = "blue")
+
+# Residuos de la regresión logarítmica
+residuos_hombres_log <- resid(modelo_hlog)
+plot(log(distancia), residuos_hombres_log, main = "Residuos de la Regresión Logarítmica para Hombres")
+
+# Suma de cuadrados de los residuos para el modelo logarítmico
+suma_cuadrados_rh <- sum(residuos_hombres_log^2)
+suma_cuadrados_rh
+
+# R^2 para el modelo logarítmico
+r2_hombres_log <- summary(modelo_hlog)$r.squared
+r2_hombres_log
+```
+
+(c) Repetir los dos apartados anteriores utilizando los datos de las mujeres.
+
+
+```{r}
+# Modelo lineal para mujeres
+model_mujeres <- lm(tiempo_mujeres ~ distancia)
+summary(model_mujeres)
+
+# Gráfico de la recta de regresión para mujeres
+plot(distancia, tiempo_mujeres, main = "Recta de Regresión para Mujeres", xlab = "Distancia", ylab = "Tiempo")
+abline(model_mujeres, col = "red")
+
+# Residuos para mujeres
+residuos_mujeres <- resid(model_mujeres)
+plot(distancia, residuos_mujeres, main = "Residuos de la Regresión para Mujeres", xlab = "Distancia", ylab = "Residuo")
+
+# Suma de cuadrados de los residuos y R^2 para mujeres
+suma_cuadrados_residuos_mujeres <- sum(residuos_mujeres^2)
+print(suma_cuadrados_residuos_mujeres)
+
+r2_mujeres <- summary(model_mujeres)$r.squared
+print(r2_mujeres)
+
+# Modelo logarítmico
+model_mujeres_log <- lm(log(tiempo_mujeres) ~ log(distancia))
+summary(model_mujeres_log)
+
+# Gráfico de la recta de regresión logarítmica
+plot(log(distancia), log(tiempo_mujeres), main = "Recta de Regresión Logarítmica para Mujeres", xlab = "Log(Distancia)", ylab = "Log(Tiempo)")
+abline(model_mujeres_log, col = "purple")
+
+# Residuos del modelo logarítmico
+residuos_mujeres_log <- resid(model_mujeres_log)
+plot(log(distancia), residuos_mujeres_log, main = "Residuos de la Regresión Logarítmica para Mujeres", xlab = "Log(Distancia)", ylab = "Residuo")
+
+# Suma de cuadrados de los residuos y R^2 para el modelo logarítmico 
+suma_cuadrados_residuos_mujeres_log <- sum(residuos_mujeres_log^2)
+print(suma_cuadrados_residuos_mujeres_log)
+r2_mujeres_log <- summary(model_mujeres_log)$r.squared
+print(r2_mujeres_log)
+```
+

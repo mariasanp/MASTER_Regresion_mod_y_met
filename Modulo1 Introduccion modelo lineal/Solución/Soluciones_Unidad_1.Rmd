@@ -1,0 +1,580 @@
+---
+title: "<br> <br> <br> Modelos lineales. <br> Ejercicios de la unidad 1"
+author: "Alex Sánchez y Francesc Carmona"
+date: "14 de Febrero de 2023"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+require(knitr)
+# include this code chunk as-is to set options
+opts_chunk$set(comment = NA, prompt = TRUE, tidy = FALSE, 
+               fig.width = 7, fig.height = 7,echo = TRUE, 
+               message = FALSE, warning = FALSE, cache=TRUE)
+Sys.setlocale("LC_TIME", "C")
+```
+
+```{r paquetes}
+if(!(require(compareGroups))) install.packages("compareGroups")
+if(!(require(faraway))) install.packages("faraway")
+if(!(require(GGally))) install.packages("GGally")
+if(!(require(devtools))) install.packages("devtools")
+if(!(require(rootSolve))) install.packages("rootSolve")
+if(!(require(mosaicCalc))) install.packages("mosaicCalc")
+if(!(require(printr))) {
+  install.packages('printr',
+            type = 'source',
+            repos = c('http://yihui.name/xran', 'http://cran.rstudio.com')
+  )
+}
+```
+
+```{r, echo=FALSE}
+htmltools::img(src = knitr::image_uri( "logo_uoc_petit.png"), 
+               alt = 'logo UOC', 
+               style = 'position:absolute; top:0; right:0; padding:10px;')
+htmltools::img(src = knitr::image_uri( "logo_ub_petit.png"), 
+               alt = 'logo UB', 
+               style = 'position:absolute; top:0; left:0; padding:10px;')
+```
+
+# Ejercicios iniciales
+
+### Ejercicio 1
+
+Los datos de los buitres leonados son:
+```{r}
+heartbpm <- c(47.53, 48.27, 49.51, 51.09, 52.57, 54.30, 
+              54.25, 54.45, 57.95, 60.92, 61.91, 77.92,
+              82.07, 82.95, 83.94, 86.96, 90.42, 92.93, 100.05)
+metabol <- c(6.15, 6.31, 6.43, 6.78, 6.86, 6.90, 7.37, 7.41,
+             8.24, 9.22, 8.16, 12.61, 15.26, 13.09, 14.59,
+             17.35, 18.57, 19.00, 20.70)
+vulture <- data.frame(heartbpm, metabol)
+rm(heartbpm, metabol)
+attach(vulture)
+```
+
+#### Apartado (a)
+
+El gráfico de dispersión se consigue así:
+```{r eval=FALSE}
+plot(heartbpm, metabol, ylim=c(0,30),
+       main="Griffon vulture, 1999-05-17",
+       xlab="heart beats (per minute)",
+       ylab="metabolic rate [J/(g*h)]")
+```
+
+#### Apartado (b)
+
+La recta de regresión se calcula con la función `lm()` y se añade al gráfico de dispersión con la función `abline()`.
+```{r eval=FALSE}
+mod <- lm(metabol ~ heartbpm, data=vulture)
+abline(mod, lwd=2, col="blue")
+```
+
+```{r echo=FALSE}
+attach(vulture)
+plot(heartbpm, metabol, ylim=c(0,30),
+       main="Griffon vulture, 1999-05-17",
+       xlab="heart beats (per minute)",
+       ylab="metabolic rate [J/(g*h)]")
+mod <- lm(metabol ~ heartbpm, data=vulture)
+abline(mod, lwd=2, col="blue")
+```
+
+#### Apartado (c)
+
+El gráfico de los residuos es
+```{r}
+plot(mod, which=1)
+```
+
+La instrucción `plot()` aplicada a un objeto `lm` proporciona 4 gráficos sobre los residuos. Ahora nos interesa únicamente el 1.
+
+#### Apartado (d)
+
+Para dibujar la regresión parabólica sobre el gráfico de dispersión lo podemos hacer así
+```{r}
+mod2 <- lm(metabol ~ heartbpm + I(heartbpm^2), data=vulture)
+x <- seq(min(heartbpm), max(heartbpm), by=2)
+y <- predict(mod2, newdata=data.frame(heartbpm=x))
+plot(heartbpm, metabol, ylim=c(0,30),
+       main="Griffon vulture, 1999-05-17",
+       xlab="heart beats (per minute)",
+       ylab="metabolic rate [J/(g*h)]")
+lines(x,y, lwd=2, col="blue")
+```
+
+El mismo resultado se puede obtener con la función `curve()`.
+```{r eval=FALSE}
+cc <- coef(mod2)
+curve(cc[1] + cc[2]*x + cc[3] * x^2, 
+      from=min(heartbpm), to=max(heartbpm), 
+      lwd=2, col="blue", add=TRUE)
+```
+
+
+### Ejercicio 2
+
+Vamos a utilizar el paquete `XML` para leer los datos directamente de la página web (*scraping*).
+```{r}
+library(XML)   # En Ubuntu hay que instalar el paquete libxml2-dev
+library(RCurl) # for getURL()
+url <- "https://www.fisterra.com/formacion/metodologia-investigacion/tecnicas-regresion-regresion-lineal-simple/"
+html <- getURL(url)
+tbls_xml <- readHTMLTable(html, stringsAsFactors = FALSE)
+typeof(tbls_xml)
+length(tbls_xml)
+```
+De las 27 tablas hay que buscar cual es la que nos interesa (la 2).
+```{r}
+datos <- readHTMLTable(html, which=2, header=F, skip.rows = 1,
+                       colClasses = rep("integer", 6))
+head(datos)
+colnames(datos) <- c("num","tas","edad","num","tas","edad")
+datos <- rbind(datos[,1:3],datos[,4:6])
+datos <- datos[-70,]
+str(datos)
+```
+Con estos datos ya podemos calcular la recta de regresión.
+```{r}
+attach(datos)
+fit <- lm(tas ~ edad, data=datos) 
+plot(edad,tas)
+abline(fit)
+summary(fit)
+coef(fit)
+```
+
+
+
+# Ejercicios del libro de Faraway
+
+## Capítulo 1
+
+Los ejercicios de este capítulo tienen todos la misma estructura.
+Para resolverlos empezaremos informándonos sobre los datos a analizar. 
+Observad que utilizando el paquete `printr` en combinación con `Rmarkdown` y `knitr` es posible obtener fácilmente una impresión de la ayuda, así como un formateo agradable y rápido de las tablas. 
+La impresión de la ayuda se ha eliminado para evitar conflictos con el menú.
+
+A continuación comprobaremos el tipo de cada columna. Si hay variables que deberían ser factores pero aparecen como numéricas las transformaremos en factores.
+
+Finalmente realizaremos un análisis descriptivo univariante y bivariante.
+
+Naturalmente ésto puede hacerse de diversas formas. La que se propone aquí no es más que una que busca un equilibrio entre la calidad y el tiempo, para lo que hemos utilizado dos paquetes,  `compareGroups` y `GGally` que simplifcan dichos análisis.
+
+### Ejercicio 1 
+**The dataset `teengamb` concerns a study of teenage gambling in Britain. Make a numerical and graphical summary of the data, commenting on any features that you find interesting. Limit the output you present to a quantity that a busy reader would find sufficient to get a basic understanding of the data.**
+
+```{r }
+require(faraway)
+require(printr)
+data(teengamb, package = "faraway")
+??teengamb
+head(teengamb)
+str(teengamb)
+apply(teengamb, 2, class)
+teengamb$sex <- factor(teengamb$sex, labels = c("male","female"))
+teengamb$verbal <- factor(teengamb$verbal)
+```
+
+```{r}
+require(compareGroups)
+res <- compareGroups(~., data = teengamb)
+restab <- createTable(res)
+restab
+
+par(mfrow = c(3,2))
+for (i in 1:dim(teengamb)[2]) {
+  if (class(teengamb[,i]) == "factor") 
+    {try(plot(teengamb[,i],main = colnames(teengamb)[i]),TRUE)
+  }else
+    {try(boxplot(teengamb[,i],main = colnames(teengamb)[i]),TRUE)
+  }
+}
+```
+
+Podemos hacer el análisis descriptivo bivariante separando factores de variables numéricas o bien utilizar el paquete "GGally" que facilita el análisis con una sola instrucción.
+
+```{r}
+require(ggplot2)
+require(GGally)
+ggpairs(teengamb)
+```
+
+### Ejercicio 2 
+**The dataset uswages is drawn as a sample from the Current Population Survey in 1988. Make a numerical and graphical summary of the data as in the previous question.**
+
+```{r}
+data("uswages",package = "faraway")
+??uswages
+head(uswages)
+str(uswages)
+apply(uswages,2,class)
+uswages$exper[uswages$exper < 0] <- NA  
+uswages$race <- factor(uswages$race)
+uswages$smsa <- factor(uswages$smsa)
+uswages$ne <- factor(uswages$ne)
+uswages$mw <- factor(uswages$mw)
+uswages$so <- factor(uswages$so)
+uswages$we <- factor(uswages$we)
+uswages$pt <- factor(uswages$pt)
+
+require(compareGroups)
+res <- compareGroups(~., data = uswages)
+restab <- createTable(res)
+restab
+
+par(mfrow = c(3,2))
+for (i in 1:dim(uswages)[2]) {
+  if (class(uswages[,i]) == "factor") {try(plot(uswages[,i],
+            main =  colnames(uswages)[i]),TRUE)
+  }else {
+      try(boxplot(uswages[,i], main =colnames(uswages)[i]),TRUE)
+  }
+}
+```
+
+```{r}
+require(ggplot2)
+require(GGally)
+ggpairs(uswages[1:4])
+```
+
+### Ejercicio 3 
+**The dataset prostate is from a study on 97 men with prostate cancer who were due to receive a radical prostatectomy. Make a numerical and graphical summary of the data as in the ﬁrst question.** 
+
+```{r}
+data("prostate",package="faraway") 
+# ?prostate
+head(prostate)
+str(prostate)
+apply(prostate, 2, class)
+prostate$svi <- as.factor(prostate$svi)
+```
+
+```{r}
+res <- compareGroups(~., data = prostate)
+restab <- createTable(res)
+restab
+
+require(ggplot2)
+require(GGally)
+ggpairs(prostate[6:ncol(prostate)])
+
+```
+ 
+### Ejercicio 4 
+**The dataset sat comes from a study entitled “Getting What You Pay For: The Debate Over Equity in Public School Expenditures.” Make a numerical and graphical summary of the data as in the ﬁrst question.**
+
+```{r}
+data("sat", package="faraway") 
+head(sat)
+
+res <- compareGroups(~., data = sat)
+restab <- createTable(res)
+restab
+
+par(mfrow = c(3,2))
+for (i in 1:dim(sat)[2]) {
+  if (class(sat[,i]) == "factor") {try(plot(sat[,i], xlab = names(sat)[i], main = "Diagrama de cajas"),TRUE)
+  }else {
+      try(boxplot(sat[,i], xlab = names(sat)[i], main = "Boxplot"),TRUE)
+    try(hist(sat[,i], xlab = names(sat)[i], main = "Histograma"),TRUE)
+  }
+}
+```
+
+### Ejercicio 5 
+**The dataset `divusa` contains data on divorces in the United States from 1920 to 1996. Make a numerical and graphical summary of the data as in the ﬁrst question.**
+
+```{r}
+data("divusa",package="faraway") 
+# ?divusa
+head(divusa)
+str(divusa)
+```
+
+```{r}
+res <- compareGroups(~., data = divusa)
+restab <- createTable(res)
+restab
+
+par(mfrow = c(3,2))
+for (i in 1:dim(divusa)[2]) {
+  if (class(divusa[,i]) == "factor") {try(plot(divusa[,i], main = names(divusa)[i]),TRUE)
+  }else {
+      try(boxplot(divusa[,i],  main =names(divusa)[i]),TRUE)
+      try(hist(divusa[,i], main = names(divusa)[i]),TRUE)
+  }
+}
+
+```
+
+
+# Ejercicios de libro de Carmona
+## Capítulo 1
+### Ejercicio 1.3
+**Consideremos el problema de tráfico planteado en el apartado 1.2 de este capítulo, con la variable independiente densidad y la variable dependiente raíz cuadrada de la velocidad. Con los datos proporcionados en la tabla 1.1 realizar el siguiente proceso:**
+
+a. **Dibujar la nube de puntos y la recta que pasa por los puntos $(12.7, \sqrt{62.4})$ y $(87.8, \sqrt{12.4})$. Dibujar el gráﬁco de los residuos con la densidad y el gráﬁco con las predicciones. Calcular la suma de cuadrados de los residuos.**
+
+```{r}
+densidad <- c(12.7,17,66,50,87.8,81.4,75.6,66.2,81.1,62.8,77,89.6,18.3,19.1,16.5,22.2,18.6,66,60.3,56,66.3,61.7,66.6,67.8)
+velocidad <- c(62.4,50.7,17.1,25.9,12.4,13.4,13.7,17.9,13.8,17.9,15.8,12.6,51.2,50.8 ,54.7,46.5,46.3,16.9,19.8,21.2,18.3,18,16.6,18.3)
+rvelocidad <- sqrt(velocidad)
+```
+
+
+Calculamos la recta que pasa por los puntos $(12.7, \sqrt{62.4})$ y $(87.8, \sqrt{12.4})$ y la dibujamos en el gráﬁco. Como solo tenemos dos puntos, la recta de ajuste mínimo-cuadrático coincide con la recta que pasa por esos puntos. 
+
+Vamos a usar la fucnión `lsﬁt()` (least squares ﬁt) que devuelve un objeto que contiene:
+
+* los estimadores de los parámetros, 
+* residuos 
+* factorización QR.
+
+En general es mejor utilizar la función `lm()` (linear model).
+
+```{r}
+x <- c(12.7, 87.8)
+y <- sqrt(c(62.4,12.4))
+slope <- diff(y)/diff(x)
+intercept <- y[1]-slope*x[1]
+c(intercept, slope)
+recta.vel <- lsfit(x,y) 
+coef(recta.vel)
+# recta.vel
+plot(densidad, rvelocidad, type="p", xlab ="densidad", ylab="raiz(velocidad)",
+     xlim=c(0 ,100), ylim=c(0,10),main="Gráfico de dispersión con recta y = 8.64 - 0.06 x") 
+# abline(intercept, slope)
+abline(recta.vel)
+```
+
+El siguiente paso es calcular los residuos y las predicciones si utilizamos esta recta.
+```{r}
+predicciones <- recta.vel$coef[1] + recta.vel$coef[2] * densidad
+residuos <- rvelocidad - predicciones
+```
+```{r}
+par(mfrow=c(1,2)) 
+par(pty="s")
+plot(densidad,residuos,xlab="densidad",ylab="residuos", ylim=c(-1,1)) 
+abline(h=0, lty=2) 
+
+plot(predicciones,residuos,xlab="predicción",ylab="residuos", ylim=c(-1,1)) 
+abline(h=0, lty=2)
+```
+
+La suma de cuadrados de los residuos es: `r sum(residuos^2)`.
+
+
+
+b. **Hallar la recta de regresión simple. Dibujar el gráﬁco de los residuos con la densidad y el gráﬁco con las predicciones. Calcular la suma de cuadrados de los residuos.**
+
+```{r}
+recta.velocidad <- lsfit(densidad,rvelocidad) 
+e <- recta.velocidad$residuals
+pred <- rvelocidad - e 
+```
+```{r}
+par(mfrow=c(1,2)) 
+par(pty="s")
+plot(densidad,e,xlab="densidad",ylab="residuos", ylim=c(-1,1)) 
+abline(h=0, lty=2) 
+
+plot(pred,e,xlab="predicción",ylab="residuos", ylim=c(-1,1)) 
+abline(h=0, lty=2)
+```
+
+La suma de cuadrados de los residuos es: `r sum(e^2)`.
+
+
+c.**Mejorar el modelo anterior considerando una regresión parabólica. Dibujar el gráﬁco de los residuos con la densidad y el gráﬁco con las predicciones. Calcular la suma de cuadrados de los residuos.**
+```{r}
+matriz.densidad <- as.matrix(data.frame(densidad, densidad^2))
+parabola.ls <- lsfit(matriz.densidad,rvelocidad) 
+parabola.ls$coef
+e<-parabola.ls$residuals 
+par(mfrow=c(1,2))
+par(pty="s") 
+plot(densidad,e,xlab="densidad",ylab="residuos",ylim=c(-1,1)) 
+abline(h=0, lty=2) 
+pred<-rvelocidad-e 
+plot(pred,e,type="p",xlab="predicción",ylab="residuos",ylim=c(-1,1)) 
+abline(h=0, lty=2)
+```
+
+La suma de cuadrados de los residuos es: `r sum(e^2)`.
+
+
+
+d. **Calcular la capacidad de la carretera o punto de máximo ﬂujo. Recordar que ﬂujo = vel $\times$ densidad.**
+
+Como hemos hallado una relación parabólica entre la raíz de la velocidad y la densidad, vamos a utilizar esta relación en el cálculo del flujo.
+```{r}
+cc <- parabola.ls$coefficients
+flujo <- (cc[1] + cc[2]*densidad + cc[3] * densidad^2)^2 * densidad 
+plot(densidad,flujo)
+```
+
+El máximo flujo es `r max(flujo)`
+y se produce con una densidad de: `r densidad[flujo==max(flujo)]`.
+
+Como el flujo es una función polinómica de la densidad, también se puede derivar la función y hallar el máximo.
+
+```{r}
+f <- function(x) (8.8814208199 -0.1035152795*x + 0.0004892585*x^2)^2 * x
+curve(f, 10, 90, ylab="flujo", xlab="densidad")
+```
+
+La derivada es
+```{r}
+# base package
+# d <- D(body(f), "x")
+# fd <- function(x) {} 
+# body(fd) <- d
+#
+# with mosaicCalc
+library(mosaicCalc)
+fd <- D(f(x) ~ x)
+curve(fd(x), 10, 90, ylab="f'(x)")
+abline(h=0, lty=2)
+```
+
+Para calcular el máximo, buscaremos el cero de la derivada.
+```{r}
+library(rootSolve)
+roots <- multiroot(fd, c(40,90))
+print(roots$root)
+```
+La solución de un flujo máximo se produce con una densidad de `r roots$root[1]`.
+
+
+### Ejercicio 1.4
+**La siguiente tabla contiene los mejores tiempos conseguidos en algunas pruebas de velocidad en atletismo en los Juegos Olímpicos de Atlanta. Si tomamos como variable regresora o independiente la distancia (metros) y como variable respuesta o dependiente el tiempo (segundos):**
+
+a. **Calcular la recta de regresión simple con los datos de los hombres y dibujarla. Dibujar el gráﬁco de los residuos con la distancia y el gráﬁco con las predicciones. Calcular la suma de cuadrados de los residuos y el $R^2$**
+```{r}
+TPO_H <- c(9.84,19.32,43.19,102.58,215.78,787.96,1627.34,7956)
+TPO_M <- c(10.94,22.12,48.25,117.73,240.83,899.88,1861.63,8765)
+distancia <- c(100,200,400,800,1500,5000,10000,42192)
+juegos <- data.frame(distancia,TPO_H,TPO_M) 
+#summary(juegos)
+recta.tpo_h <- lsfit(distancia,TPO_H) 
+recta.tpo_h$coef
+plot(distancia, TPO_H, xlab = "Distancia", ylab="Tiempo Hombres", 
+     main="Gráfico de dispersión") 
+abline(recta.tpo_h)
+```
+
+$$TPO_H =−78.2342453+0.1891926\times distancia$$
+
+Dibujamos gráﬁco de residuos con la distancia y el gráﬁco con las predicciones
+```{r}
+e<-recta.tpo_h$residuals 
+pred<-TPO_H-e 
+par(mfrow=c(1,2), pty="s")
+plot(distancia,e,xlab="distancia",ylab="residuos") 
+abline(h=0, lty=2) 
+plot(pred,e,xlab="predicción",ylab="residuos") 
+abline(h=0, lty=2)
+```
+
+La suma de cuadrados de los residuos es `r format(sum(e^2),0, nsmall = 0)`. 
+
+```{r}
+ls.print(recta.tpo_h, digits=4, print.it=T)
+cat("R2:  0.9989")
+```
+
+b.**Repetir el apartado anterior utilizando los logaritmos de las variables tiempo y distancia.**
+```{r}
+ldistancia <- log(distancia) 
+lTPO_H <- log(TPO_H) 
+lrecta.tpo_h <- lsfit(ldistancia,lTPO_H)
+plot(ldistancia, lTPO_H, xlab = "log distancia", ylab="Log tiempo Hombres",
+     main ="Gráfico de dispersión (LOG)")
+abline(lrecta.tpo_h)
+```
+
+$$\log(TP_H) = −2.885964+1.118094 \times \log(distancia)$$
+
+Dibujamos el gráﬁco de residuos con la distancia y el gráﬁco con las predicciones.
+
+```{r}
+e <- lrecta.tpo_h$residuals 
+par(mfrow=c(1,2), pty="s") 
+plot(ldistancia,e,type="p",xlab="distancia",ylab="residuos") 
+abline(h=0, lty=2)
+pred<-lTPO_H-e 
+plot(pred,e,type="p",xlab="predicción",ylab="residuos")
+abline(h=0, lty=2)
+```
+
+La suma de cuadrados de los residuos es `r sum(e^2)`.
+
+```{r}
+ls.print(lrecta.tpo_h,digits=4, print.it=T)
+cat("R2:  0.9995")
+```
+
+
+
+c. **Repetir los dos apartados anteriores utilizando los datos de las mujeres.**
+```{r}
+recta.tpo_m <- lsfit(distancia,TPO_M) 
+plot(distancia,TPO_M,xlab = "Distancia",ylab="Tiempo Mujeres",
+     main="Gráfico de dispersión")
+abline(recta.tpo_m)
+```
+$TPO_M =−72.5791085+0.2084498 \times distancia$
+Dibujamos gráﬁco residuos con la distancia y el gráﬁco con las predicciones.
+```{r}
+e<-recta.tpo_m$residuals 
+pred<-TPO_M-e
+par(mfrow=c(1,2), pty="s")
+plot(distancia,e,xlab="distancia",ylab="residuos") 
+abline(h=0, lty=2) 
+plot(pred,e,xlab="predicción",ylab="residuos") 
+abline(h=0, lty=2)
+cat("La suma de cuadrados de los residuos es: ", sum(e^2))
+ls.print(recta.tpo_m,digits=4, print.it=T)
+cat("R2: 0.9994")
+```
+
+Ahora con los logaritmos.
+
+```{r}
+ldistancia <- log(distancia) 
+lTPO_M <- log(TPO_M) 
+lrecta.tpo_m <- lsfit(ldistancia,lTPO_M)
+plot(ldistancia,lTPO_M,xlab = "Log distancia",ylab="Log tiempo Mujeres",
+     main ="Gráfico de dispersión (LOG)")
+abline(lrecta.tpo_m)
+```
+
+$$\log(TP_M) = -2.759081 + 1.117215 \times \log(distancia)$$
+
+Dibujamos gráﬁco residuos con la distancia y el gráﬁco con las predicciones.
+
+```{r}
+e <- lrecta.tpo_m$residuals 
+par(mfrow=c(1,2), pty="s") 
+plot(ldistancia,e,type="p",xlab="distancia",ylab="residuos") 
+abline(h=0, lty=2)
+pred<-lTPO_M-e 
+plot(pred,e,type="p",xlab="predicción",ylab="residuos")
+abline(h=0, lty=2)
+```
+
+```{r}
+cat("La suma de cuadrados de los residuos es: ", sum(e^2))
+ls.print(lrecta.tpo_m,digits=4, print.it=T)
+cat("R2:  0.9994")
+```
+
