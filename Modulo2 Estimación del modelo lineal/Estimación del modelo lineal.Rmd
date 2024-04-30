@@ -1,0 +1,405 @@
+---
+title: "Actividad2:Estimación del modelo lineal"
+author: "María Sánchez Paniagua"
+date: "2024-03-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Ejercicios del libro de Faraway
+
+## 1. (Ejercicio 1 cap. 2 pág. 30)
+The dataset teengamb concerns a study of teenage gambling in Britain. Fit a regression model
+with the expenditure on gambling as the response and the sex, status, income and verbal score as
+predictors. Present the output.
+
+```{r}
+library(faraway)
+data(teengamb)
+modelo <- lm(gamble ~ sex + status + income + verbal, data = teengamb)
+modelo
+summary(modelo)
+```
+
+
+
+(a) What percentage of variation in the response is explained by these predictors?
+
+```{r}
+R_cuadrado <- summary(modelo)$r.squared * 100
+cat("Porcentaje de variación explicada", round(R_cuadrado), "%\n")
+```
+
+
+(b) Which observation has the largest (positive) residual? Give the case number.
+
+```{r}
+residuos <-residuals(modelo)
+cat("El mayor residuo es ", which.max(residuos), "\n")
+```
+
+
+(c) Compute the mean and median of the residuals.
+```{r}
+media_residuos <- mean(residuals(modelo))
+mediana_residuos <- median(residuals(modelo))
+```
+La media de los residuos es `r media_residuos` y la mediana `r mediana_residuos`
+
+
+(d) Compute the correlation of the residuals with the fitted values.
+
+```{r}
+corr<- cor(residuals(modelo), fitted(modelo))
+
+```
+
+La correlación de los residuos con los valores ajustados: `r corr`
+
+(e) Compute the correlation of the residuals with the income.
+
+```{r}
+corr <- cor(residuals(modelo), teengamb$income)
+```
+
+
+La correlación de los residuos con el ingreso: `r corr`
+
+(f) For all other predictors held constant, what would be the difference in predicted expenditure
+on gambling for a male compared to a female?
+
+
+```{r}
+modelo <- lm(gamble ~ sex + status + income + verbal, data = teengamb)
+coeficientes <- coef(modelo)
+coeficientes
+diferencia_prediccion <- abs(coeficientes["sex"])
+
+
+```
+
+Diferencia en el gasto predicho para hombres vs. mujeres: `r diferencia_prediccion`.
+
+
+## 2. (Ejercicio 2 cap. 2 pág. 30)
+The dataset uswages is drawn as a sample from the Current Population Survey in 1988. Fit a model
+with weekly wages as the response and years of education and experience as predictors. Report and
+give a simple interpretation to the regression coefficient for years of education. Now fit the same
+model but with logged weekly wages. Give an interpretation to the regression coefficient for years
+of education. Which interpretation is more natural?
+
+```{r}
+data(uswages)
+modelo1 <- lm(wage ~ educ + exper, data = uswages)
+summary(modelo1)
+
+```
+
+El salario semanal aumenta en promedio en $51.1753 por cada año de educación
+
+Segunda interpretacion:
+
+```{r}
+modelo2 <- lm(log(wage) ~ educ + exper, data = uswages)
+summary(modelo2)
+
+```
+ Se espera que un año adicional de educación esté asociado con un aumento del 9.05 en el salario semanal.
+
+
+
+## 4. (Ejercicio 4 cap. 2 pág. 30)
+The dataset prostate comes from a study on 97 men with prostate cancer who were due to receive a
+radical prostatectomy. 
+
+Fit a model with lpsa as the response and lcavol as the predictor. Record
+the residual standard error and the R2.
+
+
+```{r}
+data(prostate)
+modelo_1 <- lm(lpsa ~ lcavol, data = prostate)
+summary(modelo_1)
+
+# Error estándar residual y el R2 del modelo inicial
+error_residual <- summary(modelo_1)$sigma
+r_cuadrado <- summary(modelo_1)$r.squared
+
+# Guardo los resultados en un dataframe al que iré añadiendo las variables de cada modelo
+resultados_df <- data.frame(variable = "lcavol", error_residual = error_residual, r_cuadrado = r_cuadrado)
+
+```
+
+Now add lweight, svi, lbph, age, lcp, pgg45 and gleason to the model one at a time. For each model record the residual standard error and the R2. 
+
+```{r}
+variables <- c("lweight", "svi", "lbph", "age", "lcp", "pgg45", "gleason")
+
+# Ajustar los modelos y registrar los resultados en el df por cada variable
+for (variable in variables) {
+  modelo_x <- lm(paste("lpsa ~ lcavol +", variable), data = prostate)
+  error_residual <- summary(modelo_x)$sigma
+  r_cuadrado <- summary(modelo_x)$r.squared
+  resultados_df <- rbind(resultados_df, data.frame(variable = variable, error_residual = error_residual, r_cuadrado = r_cuadrado))
+}
+
+resultados_df
+```
+
+
+
+Plot the trends in these two statistics:
+
+```{r}
+library(ggplot2)
+
+ggplot(resultados_df, aes(x = variable)) +
+  geom_line(aes(y = r_cuadrado * 100, group = 1), color = "pink", size = 2) +
+  labs(x = "Variable", y = "R^2 (%)", title = "Tendencias en R^2 por Variable")
+```
+
+```{r}
+ggplot(resultados_df, aes(x = variable)) +
+  geom_bar(aes(y = error_residual), stat = "identity", fill = "pink", alpha = 0.7) +
+  labs(x = "Variable", y = "Error Residual", title = "Tendencias en Error Residualpor Variable")
+```
+
+
+## 5. (Ejercicio 5 cap. 2 pág. 30)
+Using the prostate data, plot lpsa against lcavol. 
+
+```{r}
+data(prostate)
+
+# Dispersión de lpsa en lcavol
+plot(prostate$lcavol, prostate$lpsa, xlab = "lcavol", ylab = "lpsa", main = "lpsa vs lcavol", col = "grey", pch = 16)
+```
+
+
+Fit the regressions of lpsa on lcavol and
+lcavol on lpsa. Display both regression lines on the plot. At what point do the two lines intersect?
+
+```{r}
+plot(prostate$lcavol, prostate$lpsa, xlab = "lcavol", ylab = "lpsa", main = "lpsa vs lcavol", col = "grey", pch = 16)
+
+# Regresión de lpsa en lcavol
+modelo_lpsa_lcavol <- lm(lpsa ~ lcavol, data = prostate)
+abline(modelo_lpsa_lcavol, col = "red")
+
+# Regresión de lcavol en lpsa
+modelo_lcavol_lpsa <- lm(lcavol ~ lpsa, data = prostate)
+abline(modelo_lcavol_lpsa, col = "green")
+```
+
+
+Para calcular la intersección hay que hacer un sistema de ecuaciones;
+lpsa = m1 * lcavol + c1
+lcavol = m2 * lpsa + c2 =
+
+
+```{r}
+# Calculamos el punto de intersección de las dos rectas
+m1 <- coef(modelo_lpsa_lcavol)["lcavol"]
+c1 <- coef(modelo_lpsa_lcavol)["(Intercept)"]
+m2 <- coef(modelo_lcavol_lpsa)["lpsa"]
+c2 <- coef(modelo_lcavol_lpsa)["(Intercept)"]
+
+
+# Calcular el punto de intersección
+lcavol_interseccion <- (c2 - c1) / (m1 - m2)
+lpsa_interseccion <- m1 * lcavol_interseccion + c1
+
+
+cat("Punto de intersección: (lcavol =", lcavol_interseccion, ", lpsa =", lpsa_interseccion, ")")
+
+```
+
+Grafico la intersección:
+
+```{r}
+
+plot(prostate$lcavol, prostate$lpsa, xlab = "lcavol", ylab = "lpsa", main = "lpsa vs lcavol", col = "grey", pch = 16,  ylim = c(0,55), xlim = c(0,69))
+
+# Ajustar la regresión de lpsa en lcavol
+modelo_lpsa_lcavol <- lm(lpsa ~ lcavol, data = prostate)
+abline(modelo_lpsa_lcavol, col = "red")
+
+# Ajustar la regresión de lcavol en lpsa
+modelo_lcavol_lpsa <- lm(lcavol ~ lpsa, data = prostate)
+abline(modelo_lcavol_lpsa, col = "green")
+
+# Agregar el punto de intersección 
+points(lcavol_interseccion, lpsa_interseccion, col = "orange", pch = 16)
+
+```
+
+
+
+
+## 6. (Ejercicio 6 cap. 2 pág. 30)
+Thirty samples of cheddar cheese were analyzed for their content of acetic acid, hydrogen sulfide
+and lactic acid. Each sample was tasted and scored by a panel of judges and the average taste score
+produced. Use the cheddar data to answer the following:
+
+(a) Fit a regression model with taste as the response and the three chemical contents as predictors.
+Report the values of the regression coefficients.
+
+```{r}
+data(cheddar)
+modelo <- lm(taste ~ Acetic + H2S + Lactic, data = cheddar)
+
+# Valores de los coeficientes de regresión
+coeficientes <- coef(modelo)
+print(coeficientes)
+```
+
+
+(b) Compute the correlation between the fitted values and the response. Square it. Identify where
+this value appears in the regression output.
+
+```{r}
+cor_fitted_response <- cor(predict(modelo), cheddar$taste)
+cor_sq <- cor_fitted_response^2
+print(cor_sq)
+summary(modelo)
+```
+Este valor aparece como "Multiple R squared"
+
+(c) Fit the same regression model but without an intercept term. What is the value of R2 reported
+in the output? Compute a more reasonable measure of the good- ness of fit for this example.
+
+```{r}
+modelo_si <- lm(taste ~ Acetic +H2S + Lactic - 1, data = cheddar)
+r2_si <- summary(modelo_si)$r.squared
+cat("EL valor de R cuadrado sin intercepto es", r2_si, "\n")
+
+# Calcular una medida de la bondad del ajuste --> R cuadrado ajustado
+r_cuadrado_ajustado <- summary(modelo_si)$adj.r.squared
+
+cat("EL valor de R cuadrado  es", r_cuadrado_ajustado, "\n")
+
+```
+
+
+(d) Compute the regression coefficients from the original fit using the QR decomposition showing
+your R code.
+
+```{r}
+X <- model.matrix(modelo)
+qr_decomp <- qr(X)
+y <- cheddar$taste
+
+# Resolver el sistema utilizando la función 'qr.coef' que aplica la descomposición QR para resolver el sistema
+coeficientes_qr <- qr.coef(qr_decomp, y)
+
+
+print(coeficientes_qr)
+
+```
+
+
+
+## 7. (Ejercicio 7 cap. 2 pág. 31)
+An experiment was conducted to determine the effect of four factors on the resistivity of a semiconductor
+wafer. The data is found in wafer where each of the four factors is coded as − or +
+depending on whether the low or the high setting for that factor was used. Fit the linear model
+resist ~ x1 + x2 + x3 + x4.
+
+```{r}
+data(wafer)
+modelo <- lm(resist ~ x1 + x2 + x3 + x4, data = wafer)
+```
+
+
+(a) Extract the X matrix using the model.matrix function. Examine this to determine how the
+low and high levels have been coded in the model.
+
+```{r}
+X <- model.matrix(modelo)
+X
+```
+
+
+(b) Compute the correlation in the X matrix. Why are there some missing values in the matrix?
+
+```{r}
+correlation_X <- cor(X)
+correlation_X
+```
+
+Hay valores missing porque está incluyendo el intercepto que es constante
+
+(c) What difference in resistance is expected when moving from the low to the high level of x1?
+
+```{r}
+coeficientes <- coef(modelo)
+diferencia_resistencia_x1 <- coeficientes["x1+"]
+print(diferencia_resistencia_x1)
+```
+La diferencia de resistencia será de 15,76
+
+(d) Refit the model without x4 and examine the regression coefficients and standard errors? What
+stayed the the same as the original fit and what changed?
+
+```{r}
+modelo_sin_x4 <- lm(resist ~ x1 + x2 + x3, data = wafer)
+summary(modelo_sin_x4)
+summary(modelo)
+
+```
+
+Los que cambió fue el intercepto, los valores de R cuadrado y el error estándar residual. No cambiaron los coeficientes de las variables restantes.
+
+(e) Explain how the change in the regression coefficients is related to the correlation matrix of X.
+
+
+
+# Ejercicios del libro de Carmona
+
+## 1. (Ejercicio 2.1 del Capítulo 2 página 41)
+Una variable Y toma los valores y1, y2 y y3 en función de otra variable X con los valores x1, x2 y
+x3. Determinar cuales de los siguientes modelos son lineales y encontrar, en su caso, la matriz de
+diseño para x1 = 1, x2 = 2 y x3 = 3.
+
+a) Sí es lineal porque los estimadores tienen una relaión lineal con las variables. La matriz de diseño es:
+
+```{r}
+X <-matrix(c(1., 1., 0, 1., 2., 3.,1., 3., 8.), nrow = 3, byrow = TRUE)
+X
+```
+
+
+b) No es lineal porque los estimadores no tienen una relación lineal con las variables
+
+c)No es lineal porque los estimadores no tienen una relación lineal con las variables
+
+## 2. (Ejercicio 2.4 del Capítulo 2 página 42)
+Cuatro objetos cuyos pesos exactos son b1, b2, b3 y b4 han sido pesados en una balanza de platillos
+de acuerdo con el siguiente esquema:
+
+Hallar las estimaciones de cada bi y de la varianza del error.
+
+```{r}
+# Crear la matriz de diseño X y el vector de respuesta y
+X <- matrix(c(1, 1, 1, 1, 
+              1, -1, 1, 1,
+              1, 0, 0, 1,
+              1, 0, 0, -1,
+              1, 0, 1, 1,
+              1, 1, -1, 1), 
+            nrow = 6, byrow = TRUE)
+y <- c(9.2, 8.3, 5.4, -1.6, 8.7, 3.5)
+
+# Creo el modelo sin interceptoo y obtengo coeficientes y varianza 
+modelo <- lm(y ~ X - 1)  
+estimaciones <- coef(modelo)
+varianza_error <- summary(modelo)$sigma^2
+print(estimaciones)
+print(varianza_error)
+
+```
+

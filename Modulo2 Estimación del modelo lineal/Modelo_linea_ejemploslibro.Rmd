@@ -1,0 +1,272 @@
+---
+title: "Modelo Lineal estimación"
+author: "María Sánchez Paniagua"
+date: "2024-03-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Resolver un modelo:
+
+```{r}
+# Ajustar un modelo de regresión lineal
+modelo <- lm(Sepal.Length ~ Sepal.Width + Petal.Length + Petal.Width, data = iris)
+# Obtener la matriz de diseño del modelo
+X <- model.matrix(modelo)
+# Obtener el vector de r   espuesta del modelo
+Y <- modelo$model[, 1]
+# Obtener el rango y verificar si es igual al numero de columans de la matriz de diseño
+qr(X)$rank
+qr(X)$rank == dim(X)[2]
+#Obtener los coeficientes
+coef(modelo)
+
+# En caso de rango máximo
+# Obtener los estimadores de regresión de forma matricial
+betas <- solve(t(X) %*% X) %*% t(X) %*% Y
+print(betas)
+
+# En caso de rango no máximo
+library(MASS)
+X <- X
+XtX <- t(X) %*% X
+coef.co <- ginv(XtX) %*% t(X) %*% Y
+
+# Suma de cuadrados Residual (3 formas)
+SCR1 <- sum(residuals(modelo)^2)
+
+e <- Y - X %*% coef.co
+SCR2 <- sum(e^2)
+
+deviance(modelo)
+
+# MSE (mean square error)
+summary(modelo)$sigma
+
+```
+
+
+### Galápagos:
+
+```{r}
+y <- c(17,34,26,10,19,17,8,16,13,11, # a (grupo 1, mes 1)
+17,41,26,3,-6,-4,11,16,16,4, # b (grupo 1, mes 2)
+21,20,11,26,42,28,3,3,16,-10, # b (grupo 2, mes 1)
+10,24,32,26,52,28,27,28,21,42) # a (grupo 2, mes 2)
+x1 <- c(rep(1,10),rep(0,10),rep(0,10),rep(1,10)) # alpha
+x2 <- c(rep(0,10),rep(1,10),rep(1,10),rep(0,10)) # beta
+x3 <- c(rep(0,10),rep(1,10),rep(0,10),rep(1,10)) # gamma
+cmod <- lm(y ~ x1 + x2 + x3)
+X.co <- model.matrix(cmod) 
+
+print(X.co)
+
+```
+
+```{r}
+data(gala, package="faraway")
+str(gala)
+
+# Primero ajustamos un modelo de regresión lineal a los datos
+lmod <- lm(Species ~ Area + Elevation + Nearest + Scruz + Adjacent, data = gala)
+
+```
+  Usamos la matriz de diseño
+
+```{r}
+# Creamos una matriz de diseño basada en el modelo ajustado
+X.gala <- model.matrix(lmod)
+head(X.gala)  # Mostramos las primeras filas de la matriz de diseño
+
+# Verificamos si el rango de la matriz de diseño es igual al número de columnas
+qr(X.gala)$rank == dim(X.gala)[2]  # Esta expresión imprimirá TRUE si son iguales, de lo contrario, imprimirá FALSE
+
+```
+
+A partir de aquí, se utilizan los resultados para realizar más cálculos, como en este caso:
+
+```{r}
+X <- X.gala
+y.gala <- gala$Species
+XtX <- t(X) %*% X
+coef.gala <- solve(XtX) %*% t(X) %*% y.gala
+```
+
+y comprobamos que los resultados coinciden con los de la función lm().
+
+```{r}
+cbind(coef(lmod),coef.gala)
+```
+
+Veamos ahora qué ocurre en el caso del diseño de datos cruzados simplificado (no el de galápagos)
+El rango de la matriz de diseño es:
+
+```{r}
+qr(X.co)$rank
+```
+
+
+
+Como es menor que m, (4), tienen infinitas soluciones asi que vamos a arreglarlo:
+
+```{r}
+library(MASS)
+X <- X.co
+XtX <- t(X) %*% X
+coef.co <- ginv(XtX) %*% t(X) %*% y
+cbind(coef(cmod),coef.co)
+
+```
+Es la solución diferente a lm() --> situación indeseable. 
+
+
+Ahora podemos definir la suma de cuadrados residual. Veamos el cálculo de SCR con R en el diseño crossover y su unicidad.
+
+También disponemos de una función deviance() que aplicada a un objeto
+lm nos da directamente SCR.
+
+```{r}
+SCR1 <- sum(residuals(cmod)^2)
+e <- y - X %*% coef.co
+SCR2 <- sum(e^2)
+c(SCR1, SCR2)
+
+deviance(cmod) # Cálculo de SCR en el crossover
+```
+Tabien puedo estimar la desviacion estándar de ambos. Esta estimación es única
+
+```{r}
+summary(lmod)$sigma
+summary(lmod)$sigma
+```
+
+### Rango no máximo
+
+Ya hemos visto que una solución es utilizar una g-inversa de X′X en lugar
+de la inversa que no existe. Sin embargo, esta es una solución elegante pero
+más bien teórica. En la práctica hay soluciones más sencillas:
+
+
+Una soluciones eliminar las que no son independientes y lo hace R de manera automática.
+Una primera propuesta consiste en eliminar de la matriz de diseño las columnas
+linealmente dependientes para que la matriz resultante sea de rango
+máximo. La elección de esas columnas es bastante sencilla en el caso de variables
+dicotómicas que representan los niveles de un factor. Es lo que hace
+R y la mayoría de programas estadísticos.
+
+```{r}
+coef(cmod) #Ha eliminado x2 (elimino las que no son independientes)
+```
+
+
+Por último, una solución que se utiliza en diseño de experimentos es añadir
+una o varias restricciones a los parámetros de forma que el rango de la matriz
+de diseño sea máximo. Esto se consigue al añadir al modelo lineal filas
+adicionales que hagan que el rango coincida con el número de columnas de
+la matriz X.
+
+Por ejemplo, en el caso crossover hay que añadirm−r = 4−3 = 1 restricción.
+Si añadimos la restricción α + β = 0 tenemos:
+
+```{r}
+# Añadir una fila adicional a la matriz de diseño X (X.co) que establece una restricción
+Xnew <- rbind(X.co, c(0, 1, 1, 0))
+
+# Crear un nuevo vector de respuesta que incluya la respuesta original y un valor adicional que satisface la restricción añadida
+y.new <- c(y, 0)
+
+# Calcular el rango de la nueva matriz de diseño usando la descomposición QR
+# Esto nos dirá cuántas columnas son linealmente independientes
+qr(Xnew)$rank
+
+# Ajustar un nuevo modelo lineal utilizando la nueva matriz de diseño y el nuevo vector de respuesta
+# La fórmula "~ 0 + Xnew" indica que no se debe incluir el intercepto en el modelo
+cmod.new <- lm(y.new ~ 0 + Xnew)
+
+# Obtener los coeficientes estimados del nuevo modelo
+coef(cmod.new)
+
+summary(cmod.new)$sigma
+
+```
+
+
+## Calcular los coeficientes de regresion
+La diferencia entre hallar los coeficientes de un modelo de regresión lineal utilizando la descomposición QR y el método de la ecuación normal (multiplicando la inversa de 
+�
+�
+�
+X 
+T
+ X por 
+�
+�
+�
+X 
+T
+ y) radica en la estabilidad numérica y eficiencia computacional de los métodos:
+
+Estabilidad Numérica:
+
+Descomposición QR: 
+Es más estable numéricamente porque no requiere calcular directamente la inversa de 
+XTX una operación que puede ser problemática, especialmente si está cerca de ser una matriz singular o está mal condicionada (es decir, tiene un número de condición alto). La descomposición QR puede manejar mejor estas situaciones.
+
+Ecuación Normal: 
+La inversión de XTX puede llevar a errores numéricos significativos si la matriz es casi singular o mal condicionada, lo que puede ocurrir si las variables predictoras están altamente correlacionadas (multicolinealidad).
+Eficiencia Computacional:
+
+Descomposición QR: Generalmente es más eficiente desde el punto de vista computacional para resolver sistemas de ecuaciones lineales, porque al descomponer la matriz X en un producto de una matriz ortogonal Q y una matriz triangular superior R, la solución se reduce a resolver un sistema de ecuaciones con una matriz triangular, lo cual es computacionalmente más sencillo
+
+.
+Ecuación Normal: Puede ser menos eficiente computacionalmente porque la multiplicación de matrices y la inversión de la matriz pueden ser operaciones costosas en términos de tiempo de cálculo, especialmente para conjuntos de datos grandes.
+
+
+Además, la descomposición QR es la base de muchos algoritmos en paquetes estadísticos como R y Python, precisamente por estas ventajas. Sin embargo, en conjuntos de datos pequeños y sin problemas de colinealidad, las diferencias pueden ser mínimas y ambos métodos proporcionarán resultados prácticamente idénticos.
+
+Cabe señalar que en la práctica, muchas implementaciones de software estadístico (incluido R) usan por defecto métodos que aprovechan la descomposición QR o técnicas similares cuando se llama a funciones de ajuste de regresión lineal como lm(), por lo que el usuario final no siempre tiene que preocuparse por estos detalles a menos que se trabaje en condiciones específicas que requieran un control más fino sobre la solución numérica.
+
+### Descomposición QR
+
+```{r}
+# Asumiendo que 'modelo' es un objeto de regresión lineal ya creado con lm()
+X <- model.matrix(modelo)  # Matriz de diseño
+y <- cheddar$taste         # Vector de respuesta
+
+# Realizamos la descomposición QR
+QR <- qr(X)
+
+# Obtenemos los coeficientes del modelo de regresión usando la descomposición QR
+coeficientes_QR <- qr.coef(QR, y)
+print(coeficientes_QR)
+```
+
+### Ecuacion normal
+
+```{r}
+# Asumiendo que 'modelo' es un objeto de regresión lineal ya creado con lm()
+X <- model.matrix(modelo)  # Matriz de diseño
+y <- cheddar$taste         # Vector de respuesta
+
+# Calculamos la transpuesta de X multiplicada por X y luego la transpuesta de X multiplicada por y
+XtX <- t(X) %*% X
+Xty <- t(X) %*% y
+
+# Resolvemos para los coeficientes usando la función solve() para la inversión de la matriz
+coeficientes_NE <- solve(XtX, Xty)
+print(coeficientes_NE)
+
+```
+
+
+
+ 
+
+
+
+
+
+
