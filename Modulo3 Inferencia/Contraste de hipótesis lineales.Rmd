@@ -1,0 +1,459 @@
+---
+title: "Módulo3"
+author: "María Sánchez Paniagua"
+date: "2024-03-29"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Vamos a ver dos ejemplos para hipótesis lineales con una sola función paramétrica estimable, para un sólo parámetro (test T). El tercer ejemplo será para varias (test F).
+
+# Ejemplo1: Regresión múltiple (RANGO MÁXIMO) (H0: Bi = 0)
+
+Por ejemplo, vamos a contrastar si el coeficiente de regresión de la variable
+Area es cero.
+
+```{r}
+data(gala, package="faraway")
+lmod <- lm(Species ~ Area + Elevation + Nearest + Scruz + Adjacent,
+data = gala)
+```
+
+## La matriz de diseño
+
+```{r}
+X <- model.matrix(lmod)
+QR <- qr(X)
+QR$rank # Esde rango máximo
+
+n <- dim(X)[1]
+r <- dim(X)[2] 
+```
+
+## Comprobamos que el summary es igual a los cálculos manuales
+
+
+```{r}
+sum.lmod <- summary(lmod)
+ee.Area <- sum.lmod$sigma * sqrt(sum.lmod$cov.unscaled[2,2])
+t.est <- coef(lmod)[2] / ee.Area
+```
+
+El summary es:
+
+```{r}
+sum.lmod
+```
+
+La primera es el estimador del modelo lineal, la sugunda el error estándar, la tercera es dividir el estimador por el error estandar y R nos ofrece el cáclulo del p-valor.
+
+
+#### Estimate
+
+Compruebo que el e estimate calculado de forma manual da lo mismo que en el summary
+
+```{r}
+(beta.Area <- coef(lmod)[2]) # Devuelve el valor de estimate del summary
+```
+
+#### Error estándar
+
+Compruebo que el errore estándar calculado de forma manual da lo mismo que en el summary
+
+```{r}
+a <- c(0,1,0,0,0,0) # Vector columna para el ee (solo quiero el segundo elemento de los coef, el beta)
+# Calculo el error estándar (ee)
+(ee.beta.Area <- sqrt(sum.lmod$sigma^2 * t(a) %*% solve(crossprod(X)) %*% a))
+
+```
+
+#### T-valor
+
+Podemos comprobar que este valor es el que figura en la tercera columna del
+summary(lmod), cociente de la primera y segunda columnas.
+
+```{r}
+t.est
+sum.lmod$coef[2,3]
+t.est2 <- beta.Area / ee.beta.Area
+t.est2
+```
+
+#### El p-valor
+
+El p-valor es de un *contraste parcial* (teniendo en cuenta el resto de variables, no es una decisión firme)
+
+```{r}
+pt(abs(t.est), df = 30-6, lower.tail = FALSE) * 2
+```
+En el caso del p-valor por ejemplo de Area como es mayor de 0,05 aceptamos que el parametro del área es 0. (Teniendo en cceunta que e sun contraste parcial).
+
+#### Intervalos de confianza
+
+Se puede calcular a mano o con una función de R:
+
+```{r}
+prob <- c(0.05/2, 1-0.05/2)
+coef(lmod)[2] + qt(prob, df=30-6) * ee.Area
+```
+
+Aunque es mucho más sencillo utilizar la función confint().
+
+```{r}
+confint(lmod)[2,] # Tomo el segundo que es el del área
+```
+
+# Ejemplo2: Diseño cross-over simplificado (H0: alfa = beta) (NO RANGO MÁXIMO)
+
+
+```{r}
+y <- c(17,34,26,10,19,17,8,16,13,11,
+       17,41,26,3,-6,-4,11,16,16,4,
+       21,20,11,26,42,28,3,3,16,-10,
+       10,24,32,26,52,28,27,28,21,42)
+
+h <- length(y)
+# Cuatro columnas de la matriz de diseño
+mu <- rep(1,40)
+alpha <- c(rep(1,10),rep(0,10),rep(0,10),rep(1,10))
+beta <- c(rep(0,10),rep(1,10),rep(1,10),rep(0,10))
+gamma <- c(rep(0,10),rep(1,10),rep(0,10),rep(1,10))
+
+```
+
+## Resolución teórica (modelo 3)
+
+Para contrastar la hipótesis H0 : α − β = 0 del modelo crossover debemos
+recuperar los datos del módulo anterior y algunos de sus elementos.
+
+
+```{r}
+library(MASS)
+cmod1 <- lm(y ~ alpha + beta + gamma)
+ss <- summary(cmod1)
+X.co <- model.matrix(cmod1)
+XtXginv <- ginv(t(X.co) %*% X.co)
+coef.co <- XtXginv %*% t(X.co) %*% y
+a <- c(0,1,-1,0)
+ee.a <- sum.lmod$sigma * sqrt(t(a) %*% XtXginv %*% a)
+t.est <- sum(a*coef.co) / ee.a
+t.est
+pt(abs(t.est), df=40-3, lower.tail = FALSE) * 2
+prob <- c(0.05/2, 1-0.05/2)
+sum(a*coef.co) + qt(prob, df=40-3) * as.vector(ee.a)
+```
+
+Luego rechazamos la hipótesis nula y admitimos la diferencia entre los efectos
+de los fármacos
+## Resolución Carmona
+
+Como alfa menos beta es paramétrica estimable para este modelo sí se puede estimar aunque no sea de rango máximo
+
+```{r}
+# Reúno la columnas en la matriz de diseño
+X <- matrix(c(mu, alpha, beta, gamma), ncol=4)
+
+# rango = 3 => matriz de diseño sin rango máximo
+r <- qr(X)$rank
+```
+
+
+Como los parámetros no tiene solución única, vamos a usar la g-inversa
+
+```{r}
+# Solución con g-inversa
+library(MASS)
+XtX <- crossprod(X) # X crtapuesta de X
+XtXinv <- ginv(XtX) # G inversa
+# Cálculo de parámetros (POSIBLE solución)
+param <- XtXinv %*% crossprod(X, y)
+param
+```
+ 
+ Con estos parametros podemos calcular la estimacion de la funcion parametrica estimable:
+ 
+```{r}
+# Función paramétrica alpha-beta
+a <- c(0, 1, -1, 0)
+# El estadístico sum(a * param)
+est <- t(a) %*% param #
+```
+
+#### Estimacion de sigma cuadrado
+```{r}
+# MSE (estimador de sigma^2), se hace a mano, no hay summary
+residuos <- y - X %*% param
+MSE <- sum(residuos^2)/(n-r) # El mean square error, la estimación de sigma cuadrado
+
+```
+
+#### Error estándar
+
+```{r}
+# error estándar de la estimación
+ee.est <- sqrt(MSE * t(a) %*% XtXinv %*% a)
+ee.est
+```
+
+####t de Student
+```{r}
+t.est <- est/ee.est
+t.est
+```
+
+#### p valor
+```{r}
+p_valor <- pt(abs(t.est), df = n-r, lower.tail = FALSE) * 2
+p_valor
+```
+p-valor < 0.05 ==> Rechazamos la H0
+Luego hay diferencias entre los fármacos, su efeccto es distinto
+
+#### Intervalo de confianza(1-alpha) para alfa menos beta
+
+Se hace a mano porque no hay función de R.
+Calculo el cuantil de la t de student àra probabilidad de 1-00,5 entre dos
+
+```{r}
+t.alpha <- qt(1-0.05/2, df = n-r)
+IC <- c(est - t.alpha * ee.est, est + t.alpha * ee.est)
+IC
+```
+# Ejemplo3: Contraste de modelos con F de Fisher
+
+En el caso de varias funciones paramétricas al mismo tiempo, no se usa la t de student para contrastarlas por separado (contraste múltiple, provoca problemas en los errores), queremos hacer un constraste global.
+
+Este contraste de un conjunto de hipotesis lienales utilizamos tambien una notacion matricial, de forma que cada fila de A es una de las hipótesis, una funcion paramétrica estimable FPE. 
+
+El rango q de la matriz de hipótesis A (nº de hipótesis) es menor que el de la matriz de diseño
+
+```{r}
+
+```
+
+Se utilizará el *test F de Fisher*, una generalizacion del t de Student (porque si q es 1, solo hay una FPE es la t de Student elevada al cuadrado)
+
+H1: Y = Xbeta + e (rango X = r)
+H0: Y = Xbeta + e, Abeta = 0 (rango A = q)
+
+Lo que se hace en la hipótesis nula con Abeta = 0 es una restrición en los parámetros. Y esta restriccion transforma los parametros beta y la matriz de diseño X en un *Modelo lineal de la hipótesis nula*.
+
+
+Para esto usamos la funcion *anova(hipot_nula, hipot_general)*
+
+
+
+### Ejemplo video (Galápagos)
+
+#### Test de significacion de regresión
+
+Hacemos un test de significacion de regresion.
+
+Veo si todos los coeficientes de la regresion son cero excepto el termino independiente (beta0) o mu.
+
+Esto es un contraste sobre varios coeficientes por lo que no aplica la t de Student.
+
+El modelo de hipotesis general es:
+
+```{r}
+data(gala, package="faraway")
+lmod <- lm(Species ~ Area + Elevation + Nearest + Scruz + Adjacent,
+data = gala)
+```
+
+La hipótesis nula es
+
+```{r}
+# Hipótesis nula: Todos los coeficientes son cero (excepto beta0)
+nullmod <- lm(Species ~ 1, data = gala) # El 1 indica que solo tome el intersect como variable constante
+```
+
+Comparo los modelos con el test F:
+
+```{r}
+# Test F
+anova(nullmod, lmod)
+
+```
+Aparece la suma de cuadrado de los dos modelos, la F con los gardos de libertad y el p-valor que es muy pequeño. Se rechaza la hipótesis nula (todos los coeficientes son 0 excepto intercept).
+
+Es bueno rechazar esta hipotesis porque si no la regresion es inutil
+
+```{r}
+summary(lmod)
+```
+
+ En la ultima linea del summary ya nos lo decia. *Es necesario para dar significacion a la regresion.*
+
+### Test H0: betaArea = betaAdjacent
+
+Miro si el coeficiente de area  (bets) es igual al de adjacent.
+
+Si la h0 es cierta, si los dos parametros son iguales podriamos sumar la variable area y adjacent y darle a esa suma un unico parametro, Hay un parametro pero es el mismo. Para eso está la función *I()*. 
+
+La funcion I() dice que primero sume y luego el resultado es una variable
+
+Es una sola funcion parametrica estimable por lo que puedo usar el t de Student, pero seeria sobre beta de area menos beta de adjacent y no es inmedianto, es mas sencillo el F.
+
+```{r}
+# Hipotesis nula
+lmod0 <- lm(Species ~ I(Area + Adjacent) + Elevation + Nearest + Scruz, data = gala)
+
+# Test F
+anova(lmod0, lmod)
+```
+
+Hay un grado de libertad (q) y 24 (30-6) el estadistico F es 5,47 y el p-valor es 0,027. Rechazamos que ambos parametros sean iguales.
+
+### Ejemplo libro (modulo 3 pdf)
+
+```{r}
+lmod <- lm(Species ~ ., data = gala[,-2])
+lmod0 <- lm(Species ~ 1, data = gala[,-2])
+anova(lmod0,lmod)
+```
+En el caso de que el contraste de modelos se haga con una única restricción,
+es decir q = 1, el test F es equivalente al test t, ya que F = t2.
+
+
+Por ejemplo, el contraste de la hipótesis βArea = 0 se puede resolver con un
+contraste de modelos.
+
+```{r}
+lmod <- lm(Species ~ ., data=gala[,-2])
+lmod0 <- lm(Species ~ Elevation + Nearest + Scruz + Adjacent,
+data = gala[,-2])
+anova(lmod0,lmod)
+```
+
+Observemos que el p-valor es el mismo que obtuvimos con el estadístico t y
+además t2 = F.
+
+```{r}
+ss <- summary(lmod)
+sum.lmod$coef[2,4] # p-valor
+sum.lmod$coef[2,3]^2 # t^2
+```
+
+Otra hipótesis que se puede resolver como un contraste de modelos es H0 :βArea = βAdjacent. 
+Si los dos coeficientes son iguales, podemos considerar que
+son uno solo y sumar las dos variables.
+
+```{r}
+lmod0 <- lm(Species ~ I(Area + Adjacent) + Elevation + Nearest +
+Scruz, data = gala[,-2])
+anova(lmod0, lmod)
+```
+
+En este caso, rechazamos la hipótesis considerada.
+
+Una hipótesis del tipo H0 : βElevation = 0.5 también se puede contrastar así
+
+
+
+```{r}
+lmod0 <- lm(Species ~ Area + offset(0.5 * Elevation) + Nearest +
+Scruz + Adjacent, data = gala[,-2])
+anova(lmod0, lmod)
+```
+
+En este caso también rechazamos la hipótesis considerada.
+
+
+## Ejemplo crossover (modulo 3 pdf)
+
+En el diseño crossover la principal hipótesis H0 : α = β se puede contrastar
+con un test F. Observemos que si los dos efectos son iguales, el parámetro
+común es el mismo en las cuatro situaciones experimentales y se confunde
+con la media general μ.
+```{r}
+y <- c(17,34,26,10,19,17,8,16,13,11,
+       17,41,26,3,-6,-4,11,16,16,4,
+       21,20,11,26,42,28,3,3,16,-10,
+       10,24,32,26,52,28,27,28,21,42)
+
+n <- length(y)
+# Cuatro columnas de la matriz de diseño
+mu <- rep(1,40)
+alpha <- c(rep(1,10),rep(0,10),rep(0,10),rep(1,10))
+beta <- c(rep(0,10),rep(1,10),rep(1,10),rep(0,10))
+gamma <- c(rep(0,10),rep(1,10),rep(0,10),rep(1,10))
+```
+
+
+
+```{r}
+cmod <- lm(mu ~ alpha + beta + gamma)
+cmod0 <- lm(mu ~ gamma)
+anova(cmod0,cmod)
+```
+
+
+### Diseño cross-over simplificado (video)
+
+
+
+
+
+L ahipotesis principal es que alfa = beta. Como se trata de una unica FPE, tenemos que q = 1 y se puede usar t de Student (otra vez todo a mano). Mucho mejor como contraste de modelos.
+
+En principio, el modelo general (g) tiene mu, alfa, beta y gamma.En principio este modelo g tiene mu porque es la columna de los 1 del principio, que siempre está en el lm. 
+
+El modelo de la hipotesis nula, si es cierta es que: La H0: alpha = beta.
+
+Si alfa es igual a beta la primera y la segunda columna se pueden unir porque le parametro alfa e sigual a beta y solo hay uno. Si las unimos o sumamos quedaria una columna de unos, que es igual a la mu. (Mirara la Xr de diseño crossover simplificado).
+
+La XR era:
+
+
+mu = 1111
+alfa = 1001
+beta = 0110
+gamma = 0101
+
+alfa + beta = mu
+
+La metriz de la hipotesis nula solo tendrá dso columnas entonces
+mu'= 1111
+gamma = 0101
+
+```{r}
+# Modelo lineal con mu
+g <- lm(y ~ alpha + beta + gamma)
+g0 <- lm(y ~  gamma)
+
+# Test F:
+anova(g0, g)
+
+```
+
+El resultado es una f de 4,71 el p valor es 0,036 y efectivamente el resultado es el mismo que daba con la forma manual. Es decir la t de estudent al cuadrado
+
+```{r} 
+#Cálculo manual con G inversa
+library(MASS)
+X <- matrix(c(mu, alpha, beta, gamma), ncol=4)
+r <- qr(X)$rank
+XtX <- crossprod(X) # X crtapuesta de X
+XtXinv <- ginv(XtX) # G inversa
+param <- XtXinv %*% crossprod(X, y)
+a <- c(0, 1, -1, 0)
+est <- t(a) %*% param #
+residuos <- y - X %*% param
+MSE <- sum(residuos^2)/(n-r) # El mean square error, la estimación de sigma cuadrado
+ee.est <- sqrt(MSE * t(a) %*% XtXinv %*% a)
+t.est <- est/ee.est # divido el estimador entre el error estandar
+t.est^2
+
+
+```
+
+Rechazamos la igualdad entre los doas fármacos.
+
+
+# Resumen:
+
+Mejor expresar los modelos aunque sean parametricos con el testF que con t de Stdent

@@ -1,0 +1,964 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Módulo3},
+  pdfauthor={María Sánchez Paniagua},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Módulo3}
+\author{María Sánchez Paniagua}
+\date{2024-03-29}
+
+\begin{document}
+\maketitle
+
+Vamos a ver dos ejemplos para hipótesis lineales con una sola función
+paramétrica estimable, para un sólo parámetro (test T). El tercer
+ejemplo será para varias (test F).
+
+\hypertarget{ejemplo1-regresiuxf3n-muxfaltiple-rango-muxe1ximo-h0-bi-0}{%
+\section{Ejemplo1: Regresión múltiple (RANGO MÁXIMO) (H0: Bi =
+0)}\label{ejemplo1-regresiuxf3n-muxfaltiple-rango-muxe1ximo-h0-bi-0}}
+
+Por ejemplo, vamos a contrastar si el coeficiente de regresión de la
+variable Area es cero.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{data}\NormalTok{(gala, }\AttributeTok{package=}\StringTok{"faraway"}\NormalTok{)}
+\NormalTok{lmod }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Area }\SpecialCharTok{+}\NormalTok{ Elevation }\SpecialCharTok{+}\NormalTok{ Nearest }\SpecialCharTok{+}\NormalTok{ Scruz }\SpecialCharTok{+}\NormalTok{ Adjacent,}
+\AttributeTok{data =}\NormalTok{ gala)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{la-matriz-de-diseuxf1o}{%
+\subsection{La matriz de diseño}\label{la-matriz-de-diseuxf1o}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{X }\OtherTok{\textless{}{-}} \FunctionTok{model.matrix}\NormalTok{(lmod)}
+\NormalTok{QR }\OtherTok{\textless{}{-}} \FunctionTok{qr}\NormalTok{(X)}
+\NormalTok{QR}\SpecialCharTok{$}\NormalTok{rank }\CommentTok{\# Esde rango máximo}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 6
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{n }\OtherTok{\textless{}{-}} \FunctionTok{dim}\NormalTok{(X)[}\DecValTok{1}\NormalTok{]}
+\NormalTok{r }\OtherTok{\textless{}{-}} \FunctionTok{dim}\NormalTok{(X)[}\DecValTok{2}\NormalTok{] }
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{comprobamos-que-el-summary-es-igual-a-los-cuxe1lculos-manuales}{%
+\subsection{Comprobamos que el summary es igual a los cálculos
+manuales}\label{comprobamos-que-el-summary-es-igual-a-los-cuxe1lculos-manuales}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sum.lmod }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(lmod)}
+\NormalTok{ee.Area }\OtherTok{\textless{}{-}}\NormalTok{ sum.lmod}\SpecialCharTok{$}\NormalTok{sigma }\SpecialCharTok{*} \FunctionTok{sqrt}\NormalTok{(sum.lmod}\SpecialCharTok{$}\NormalTok{cov.unscaled[}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{])}
+\NormalTok{t.est }\OtherTok{\textless{}{-}} \FunctionTok{coef}\NormalTok{(lmod)[}\DecValTok{2}\NormalTok{] }\SpecialCharTok{/}\NormalTok{ ee.Area}
+\end{Highlighting}
+\end{Shaded}
+
+El summary es:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sum.lmod}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = Species ~ Area + Elevation + Nearest + Scruz + Adjacent, 
+##     data = gala)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -111.679  -34.898   -7.862   33.460  182.584 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  7.068221  19.154198   0.369 0.715351    
+## Area        -0.023938   0.022422  -1.068 0.296318    
+## Elevation    0.319465   0.053663   5.953 3.82e-06 ***
+## Nearest      0.009144   1.054136   0.009 0.993151    
+## Scruz       -0.240524   0.215402  -1.117 0.275208    
+## Adjacent    -0.074805   0.017700  -4.226 0.000297 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 60.98 on 24 degrees of freedom
+## Multiple R-squared:  0.7658, Adjusted R-squared:  0.7171 
+## F-statistic:  15.7 on 5 and 24 DF,  p-value: 6.838e-07
+\end{verbatim}
+
+La primera es el estimador del modelo lineal, la sugunda el error
+estándar, la tercera es dividir el estimador por el error estandar y R
+nos ofrece el cáclulo del p-valor.
+
+\hypertarget{estimate}{%
+\paragraph{Estimate}\label{estimate}}
+
+Compruebo que el e estimate calculado de forma manual da lo mismo que en
+el summary
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(beta.Area }\OtherTok{\textless{}{-}} \FunctionTok{coef}\NormalTok{(lmod)[}\DecValTok{2}\NormalTok{]) }\CommentTok{\# Devuelve el valor de estimate del summary}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##        Area 
+## -0.02393834
+\end{verbatim}
+
+\hypertarget{error-estuxe1ndar}{%
+\paragraph{Error estándar}\label{error-estuxe1ndar}}
+
+Compruebo que el errore estándar calculado de forma manual da lo mismo
+que en el summary
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{a }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{) }\CommentTok{\# Vector columna para el ee (solo quiero el segundo elemento de los coef, el beta)}
+\CommentTok{\# Calculo el error estándar (ee)}
+\NormalTok{(ee.beta.Area }\OtherTok{\textless{}{-}} \FunctionTok{sqrt}\NormalTok{(sum.lmod}\SpecialCharTok{$}\NormalTok{sigma}\SpecialCharTok{\^{}}\DecValTok{2} \SpecialCharTok{*} \FunctionTok{t}\NormalTok{(a) }\SpecialCharTok{\%*\%} \FunctionTok{solve}\NormalTok{(}\FunctionTok{crossprod}\NormalTok{(X)) }\SpecialCharTok{\%*\%}\NormalTok{ a))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##            [,1]
+## [1,] 0.02242235
+\end{verbatim}
+
+\hypertarget{t-valor}{%
+\paragraph{T-valor}\label{t-valor}}
+
+Podemos comprobar que este valor es el que figura en la tercera columna
+del summary(lmod), cociente de la primera y segunda columnas.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{t.est}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      Area 
+## -1.067611
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sum.lmod}\SpecialCharTok{$}\NormalTok{coef[}\DecValTok{2}\NormalTok{,}\DecValTok{3}\NormalTok{]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -1.067611
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{t.est2 }\OtherTok{\textless{}{-}}\NormalTok{ beta.Area }\SpecialCharTok{/}\NormalTok{ ee.beta.Area}
+\NormalTok{t.est2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##           [,1]
+## [1,] -1.067611
+\end{verbatim}
+
+\hypertarget{el-p-valor}{%
+\paragraph{El p-valor}\label{el-p-valor}}
+
+El p-valor es de un \emph{contraste parcial} (teniendo en cuenta el
+resto de variables, no es una decisión firme)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{pt}\NormalTok{(}\FunctionTok{abs}\NormalTok{(t.est), }\AttributeTok{df =} \DecValTok{30{-}6}\NormalTok{, }\AttributeTok{lower.tail =} \ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{*} \DecValTok{2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     Area 
+## 0.296318
+\end{verbatim}
+
+En el caso del p-valor por ejemplo de Area como es mayor de 0,05
+aceptamos que el parametro del área es 0. (Teniendo en cceunta que e sun
+contraste parcial).
+
+\hypertarget{intervalos-de-confianza}{%
+\paragraph{Intervalos de confianza}\label{intervalos-de-confianza}}
+
+Se puede calcular a mano o con una función de R:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prob }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FloatTok{0.05}\SpecialCharTok{/}\DecValTok{2}\NormalTok{, }\DecValTok{1}\FloatTok{{-}0.05}\SpecialCharTok{/}\DecValTok{2}\NormalTok{)}
+\FunctionTok{coef}\NormalTok{(lmod)[}\DecValTok{2}\NormalTok{] }\SpecialCharTok{+} \FunctionTok{qt}\NormalTok{(prob, }\AttributeTok{df=}\DecValTok{30{-}6}\NormalTok{) }\SpecialCharTok{*}\NormalTok{ ee.Area}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -0.07021580  0.02233912
+\end{verbatim}
+
+Aunque es mucho más sencillo utilizar la función confint().
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{confint}\NormalTok{(lmod)[}\DecValTok{2}\NormalTok{,] }\CommentTok{\# Tomo el segundo que es el del área}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##       2.5 %      97.5 % 
+## -0.07021580  0.02233912
+\end{verbatim}
+
+\hypertarget{ejemplo2-diseuxf1o-cross-over-simplificado-h0-alfa-beta-no-rango-muxe1ximo}{%
+\section{Ejemplo2: Diseño cross-over simplificado (H0: alfa = beta) (NO
+RANGO
+MÁXIMO)}\label{ejemplo2-diseuxf1o-cross-over-simplificado-h0-alfa-beta-no-rango-muxe1ximo}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{y }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{17}\NormalTok{,}\DecValTok{34}\NormalTok{,}\DecValTok{26}\NormalTok{,}\DecValTok{10}\NormalTok{,}\DecValTok{19}\NormalTok{,}\DecValTok{17}\NormalTok{,}\DecValTok{8}\NormalTok{,}\DecValTok{16}\NormalTok{,}\DecValTok{13}\NormalTok{,}\DecValTok{11}\NormalTok{,}
+       \DecValTok{17}\NormalTok{,}\DecValTok{41}\NormalTok{,}\DecValTok{26}\NormalTok{,}\DecValTok{3}\NormalTok{,}\SpecialCharTok{{-}}\DecValTok{6}\NormalTok{,}\SpecialCharTok{{-}}\DecValTok{4}\NormalTok{,}\DecValTok{11}\NormalTok{,}\DecValTok{16}\NormalTok{,}\DecValTok{16}\NormalTok{,}\DecValTok{4}\NormalTok{,}
+       \DecValTok{21}\NormalTok{,}\DecValTok{20}\NormalTok{,}\DecValTok{11}\NormalTok{,}\DecValTok{26}\NormalTok{,}\DecValTok{42}\NormalTok{,}\DecValTok{28}\NormalTok{,}\DecValTok{3}\NormalTok{,}\DecValTok{3}\NormalTok{,}\DecValTok{16}\NormalTok{,}\SpecialCharTok{{-}}\DecValTok{10}\NormalTok{,}
+       \DecValTok{10}\NormalTok{,}\DecValTok{24}\NormalTok{,}\DecValTok{32}\NormalTok{,}\DecValTok{26}\NormalTok{,}\DecValTok{52}\NormalTok{,}\DecValTok{28}\NormalTok{,}\DecValTok{27}\NormalTok{,}\DecValTok{28}\NormalTok{,}\DecValTok{21}\NormalTok{,}\DecValTok{42}\NormalTok{)}
+
+\NormalTok{h }\OtherTok{\textless{}{-}} \FunctionTok{length}\NormalTok{(y)}
+\CommentTok{\# Cuatro columnas de la matriz de diseño}
+\NormalTok{mu }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{40}\NormalTok{)}
+\NormalTok{alpha }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{))}
+\NormalTok{beta }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{))}
+\NormalTok{gamma }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{resoluciuxf3n-teuxf3rica-modelo-3}{%
+\subsection{Resolución teórica (modelo
+3)}\label{resoluciuxf3n-teuxf3rica-modelo-3}}
+
+Para contrastar la hipótesis H0 : α − β = 0 del modelo crossover debemos
+recuperar los datos del módulo anterior y algunos de sus elementos.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(MASS)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: package 'MASS' was built under R version 4.3.2
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cmod1 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ alpha }\SpecialCharTok{+}\NormalTok{ beta }\SpecialCharTok{+}\NormalTok{ gamma)}
+\NormalTok{ss }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(cmod1)}
+\NormalTok{X.co }\OtherTok{\textless{}{-}} \FunctionTok{model.matrix}\NormalTok{(cmod1)}
+\NormalTok{XtXginv }\OtherTok{\textless{}{-}} \FunctionTok{ginv}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.co) }\SpecialCharTok{\%*\%}\NormalTok{ X.co)}
+\NormalTok{coef.co }\OtherTok{\textless{}{-}}\NormalTok{ XtXginv }\SpecialCharTok{\%*\%} \FunctionTok{t}\NormalTok{(X.co) }\SpecialCharTok{\%*\%}\NormalTok{ y}
+\NormalTok{a }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{,}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{,}\DecValTok{0}\NormalTok{)}
+\NormalTok{ee.a }\OtherTok{\textless{}{-}}\NormalTok{ sum.lmod}\SpecialCharTok{$}\NormalTok{sigma }\SpecialCharTok{*} \FunctionTok{sqrt}\NormalTok{(}\FunctionTok{t}\NormalTok{(a) }\SpecialCharTok{\%*\%}\NormalTok{ XtXginv }\SpecialCharTok{\%*\%}\NormalTok{ a)}
+\NormalTok{t.est }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{(a}\SpecialCharTok{*}\NormalTok{coef.co) }\SpecialCharTok{/}\NormalTok{ ee.a}
+\NormalTok{t.est}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##           [,1]
+## [1,] 0.4589762
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{pt}\NormalTok{(}\FunctionTok{abs}\NormalTok{(t.est), }\AttributeTok{df=}\DecValTok{40{-}3}\NormalTok{, }\AttributeTok{lower.tail =} \ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{*} \DecValTok{2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##           [,1]
+## [1,] 0.6489363
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prob }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FloatTok{0.05}\SpecialCharTok{/}\DecValTok{2}\NormalTok{, }\DecValTok{1}\FloatTok{{-}0.05}\SpecialCharTok{/}\DecValTok{2}\NormalTok{)}
+\FunctionTok{sum}\NormalTok{(a}\SpecialCharTok{*}\NormalTok{coef.co) }\SpecialCharTok{+} \FunctionTok{qt}\NormalTok{(prob, }\AttributeTok{df=}\DecValTok{40{-}3}\NormalTok{) }\SpecialCharTok{*} \FunctionTok{as.vector}\NormalTok{(ee.a)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -30.21914  47.91914
+\end{verbatim}
+
+Luego rechazamos la hipótesis nula y admitimos la diferencia entre los
+efectos de los fármacos \#\# Resolución Carmona
+
+Como alfa menos beta es paramétrica estimable para este modelo sí se
+puede estimar aunque no sea de rango máximo
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Reúno la columnas en la matriz de diseño}
+\NormalTok{X }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\FunctionTok{c}\NormalTok{(mu, alpha, beta, gamma), }\AttributeTok{ncol=}\DecValTok{4}\NormalTok{)}
+
+\CommentTok{\# rango = 3 =\textgreater{} matriz de diseño sin rango máximo}
+\NormalTok{r }\OtherTok{\textless{}{-}} \FunctionTok{qr}\NormalTok{(X)}\SpecialCharTok{$}\NormalTok{rank}
+\end{Highlighting}
+\end{Shaded}
+
+Como los parámetros no tiene solución única, vamos a usar la g-inversa
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Solución con g{-}inversa}
+\FunctionTok{library}\NormalTok{(MASS)}
+\NormalTok{XtX }\OtherTok{\textless{}{-}} \FunctionTok{crossprod}\NormalTok{(X) }\CommentTok{\# X crtapuesta de X}
+\NormalTok{XtXinv }\OtherTok{\textless{}{-}} \FunctionTok{ginv}\NormalTok{(XtX) }\CommentTok{\# G inversa}
+\CommentTok{\# Cálculo de parámetros (POSIBLE solución)}
+\NormalTok{param }\OtherTok{\textless{}{-}}\NormalTok{ XtXinv }\SpecialCharTok{\%*\%} \FunctionTok{crossprod}\NormalTok{(X, y)}
+\NormalTok{param}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##           [,1]
+## [1,] 11.033333
+## [2,]  9.941667
+## [3,]  1.091667
+## [4,]  4.150000
+\end{verbatim}
+
+Con estos parametros podemos calcular la estimacion de la funcion
+parametrica estimable:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Función paramétrica alpha{-}beta}
+\NormalTok{a }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{, }\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{, }\DecValTok{0}\NormalTok{)}
+\CommentTok{\# El estadístico sum(a * param)}
+\NormalTok{est }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(a) }\SpecialCharTok{\%*\%}\NormalTok{ param }\CommentTok{\#}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{estimacion-de-sigma-cuadrado}{%
+\paragraph{Estimacion de sigma
+cuadrado}\label{estimacion-de-sigma-cuadrado}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# MSE (estimador de sigma\^{}2), se hace a mano, no hay summary}
+\NormalTok{residuos }\OtherTok{\textless{}{-}}\NormalTok{ y }\SpecialCharTok{{-}}\NormalTok{ X }\SpecialCharTok{\%*\%}\NormalTok{ param}
+\NormalTok{MSE }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{(residuos}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}\SpecialCharTok{/}\NormalTok{(n}\SpecialCharTok{{-}}\NormalTok{r) }\CommentTok{\# El mean square error, la estimación de sigma cuadrado}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{error-estuxe1ndar-1}{%
+\paragraph{Error estándar}\label{error-estuxe1ndar-1}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# error estándar de la estimación}
+\NormalTok{ee.est }\OtherTok{\textless{}{-}} \FunctionTok{sqrt}\NormalTok{(MSE }\SpecialCharTok{*} \FunctionTok{t}\NormalTok{(a) }\SpecialCharTok{\%*\%}\NormalTok{ XtXinv }\SpecialCharTok{\%*\%}\NormalTok{ a)}
+\NormalTok{ee.est}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##          [,1]
+## [1,] 4.771802
+\end{verbatim}
+
+\#\#\#\#t de Student
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{t.est }\OtherTok{\textless{}{-}}\NormalTok{ est}\SpecialCharTok{/}\NormalTok{ee.est}
+\NormalTok{t.est}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##          [,1]
+## [1,] 1.854645
+\end{verbatim}
+
+\hypertarget{p-valor}{%
+\paragraph{p valor}\label{p-valor}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{p\_valor }\OtherTok{\textless{}{-}} \FunctionTok{pt}\NormalTok{(}\FunctionTok{abs}\NormalTok{(t.est), }\AttributeTok{df =}\NormalTok{ n}\SpecialCharTok{{-}}\NormalTok{r, }\AttributeTok{lower.tail =} \ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{*} \DecValTok{2}
+\NormalTok{p\_valor}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##            [,1]
+## [1,] 0.07459912
+\end{verbatim}
+
+p-valor \textless{} 0.05 ==\textgreater{} Rechazamos la H0 Luego hay
+diferencias entre los fármacos, su efeccto es distinto
+
+\hypertarget{intervalo-de-confianza1-alpha-para-alfa-menos-beta}{%
+\paragraph{Intervalo de confianza(1-alpha) para alfa menos
+beta}\label{intervalo-de-confianza1-alpha-para-alfa-menos-beta}}
+
+Se hace a mano porque no hay función de R. Calculo el cuantil de la t de
+student àra probabilidad de 1-00,5 entre dos
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{t.alpha }\OtherTok{\textless{}{-}} \FunctionTok{qt}\NormalTok{(}\DecValTok{1}\FloatTok{{-}0.05}\SpecialCharTok{/}\DecValTok{2}\NormalTok{, }\AttributeTok{df =}\NormalTok{ n}\SpecialCharTok{{-}}\NormalTok{r)}
+\NormalTok{IC }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(est }\SpecialCharTok{{-}}\NormalTok{ t.alpha }\SpecialCharTok{*}\NormalTok{ ee.est, est }\SpecialCharTok{+}\NormalTok{ t.alpha }\SpecialCharTok{*}\NormalTok{ ee.est)}
+\NormalTok{IC}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -0.9409286 18.6409286
+\end{verbatim}
+
+\hypertarget{ejemplo3-contraste-de-modelos-con-f-de-fisher}{%
+\section{Ejemplo3: Contraste de modelos con F de
+Fisher}\label{ejemplo3-contraste-de-modelos-con-f-de-fisher}}
+
+En el caso de varias funciones paramétricas al mismo tiempo, no se usa
+la t de student para contrastarlas por separado (contraste múltiple,
+provoca problemas en los errores), queremos hacer un constraste global.
+
+Este contraste de un conjunto de hipotesis lienales utilizamos tambien
+una notacion matricial, de forma que cada fila de A es una de las
+hipótesis, una funcion paramétrica estimable FPE.
+
+El rango q de la matriz de hipótesis A (nº de hipótesis) es menor que el
+de la matriz de diseño
+
+Se utilizará el \emph{test F de Fisher}, una generalizacion del t de
+Student (porque si q es 1, solo hay una FPE es la t de Student elevada
+al cuadrado)
+
+H1: Y = Xbeta + e (rango X = r) H0: Y = Xbeta + e, Abeta = 0 (rango A =
+q)
+
+Lo que se hace en la hipótesis nula con Abeta = 0 es una restrición en
+los parámetros. Y esta restriccion transforma los parametros beta y la
+matriz de diseño X en un \emph{Modelo lineal de la hipótesis nula}.
+
+Para esto usamos la funcion \emph{anova(hipot\_nula, hipot\_general)}
+
+\hypertarget{ejemplo-video-galuxe1pagos}{%
+\subsubsection{Ejemplo video
+(Galápagos)}\label{ejemplo-video-galuxe1pagos}}
+
+\hypertarget{test-de-significacion-de-regresiuxf3n}{%
+\paragraph{Test de significacion de
+regresión}\label{test-de-significacion-de-regresiuxf3n}}
+
+Hacemos un test de significacion de regresion.
+
+Veo si todos los coeficientes de la regresion son cero excepto el
+termino independiente (beta0) o mu.
+
+Esto es un contraste sobre varios coeficientes por lo que no aplica la t
+de Student.
+
+El modelo de hipotesis general es:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{data}\NormalTok{(gala, }\AttributeTok{package=}\StringTok{"faraway"}\NormalTok{)}
+\NormalTok{lmod }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Area }\SpecialCharTok{+}\NormalTok{ Elevation }\SpecialCharTok{+}\NormalTok{ Nearest }\SpecialCharTok{+}\NormalTok{ Scruz }\SpecialCharTok{+}\NormalTok{ Adjacent,}
+\AttributeTok{data =}\NormalTok{ gala)}
+\end{Highlighting}
+\end{Shaded}
+
+La hipótesis nula es
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Hipótesis nula: Todos los coeficientes son cero (excepto beta0)}
+\NormalTok{nullmod }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}} \DecValTok{1}\NormalTok{, }\AttributeTok{data =}\NormalTok{ gala) }\CommentTok{\# El 1 indica que solo tome el intersect como variable constante}
+\end{Highlighting}
+\end{Shaded}
+
+Comparo los modelos con el test F:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Test F}
+\FunctionTok{anova}\NormalTok{(nullmod, lmod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Model 1: Species ~ 1
+## Model 2: Species ~ Area + Elevation + Nearest + Scruz + Adjacent
+##   Res.Df    RSS Df Sum of Sq      F    Pr(>F)    
+## 1     29 381081                                  
+## 2     24  89231  5    291850 15.699 6.838e-07 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+Aparece la suma de cuadrado de los dos modelos, la F con los gardos de
+libertad y el p-valor que es muy pequeño. Se rechaza la hipótesis nula
+(todos los coeficientes son 0 excepto intercept).
+
+Es bueno rechazar esta hipotesis porque si no la regresion es inutil
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(lmod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = Species ~ Area + Elevation + Nearest + Scruz + Adjacent, 
+##     data = gala)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -111.679  -34.898   -7.862   33.460  182.584 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  7.068221  19.154198   0.369 0.715351    
+## Area        -0.023938   0.022422  -1.068 0.296318    
+## Elevation    0.319465   0.053663   5.953 3.82e-06 ***
+## Nearest      0.009144   1.054136   0.009 0.993151    
+## Scruz       -0.240524   0.215402  -1.117 0.275208    
+## Adjacent    -0.074805   0.017700  -4.226 0.000297 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 60.98 on 24 degrees of freedom
+## Multiple R-squared:  0.7658, Adjusted R-squared:  0.7171 
+## F-statistic:  15.7 on 5 and 24 DF,  p-value: 6.838e-07
+\end{verbatim}
+
+En la ultima linea del summary ya nos lo decia. \emph{Es necesario para
+dar significacion a la regresion.}
+
+\hypertarget{test-h0-betaarea-betaadjacent}{%
+\subsubsection{Test H0: betaArea =
+betaAdjacent}\label{test-h0-betaarea-betaadjacent}}
+
+Miro si el coeficiente de area (bets) es igual al de adjacent.
+
+Si la h0 es cierta, si los dos parametros son iguales podriamos sumar la
+variable area y adjacent y darle a esa suma un unico parametro, Hay un
+parametro pero es el mismo. Para eso está la función \emph{I()}.
+
+La funcion I() dice que primero sume y luego el resultado es una
+variable
+
+Es una sola funcion parametrica estimable por lo que puedo usar el t de
+Student, pero seeria sobre beta de area menos beta de adjacent y no es
+inmedianto, es mas sencillo el F.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Hipotesis nula}
+\NormalTok{lmod0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}} \FunctionTok{I}\NormalTok{(Area }\SpecialCharTok{+}\NormalTok{ Adjacent) }\SpecialCharTok{+}\NormalTok{ Elevation }\SpecialCharTok{+}\NormalTok{ Nearest }\SpecialCharTok{+}\NormalTok{ Scruz, }\AttributeTok{data =}\NormalTok{ gala)}
+
+\CommentTok{\# Test F}
+\FunctionTok{anova}\NormalTok{(lmod0, lmod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Model 1: Species ~ I(Area + Adjacent) + Elevation + Nearest + Scruz
+## Model 2: Species ~ Area + Elevation + Nearest + Scruz + Adjacent
+##   Res.Df    RSS Df Sum of Sq     F  Pr(>F)  
+## 1     25 109591                             
+## 2     24  89231  1     20360 5.476 0.02793 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+Hay un grado de libertad (q) y 24 (30-6) el estadistico F es 5,47 y el
+p-valor es 0,027. Rechazamos que ambos parametros sean iguales.
+
+\hypertarget{ejemplo-libro-modulo-3-pdf}{%
+\subsubsection{Ejemplo libro (modulo 3
+pdf)}\label{ejemplo-libro-modulo-3-pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{lmod }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }\AttributeTok{data =}\NormalTok{ gala[,}\SpecialCharTok{{-}}\DecValTok{2}\NormalTok{])}
+\NormalTok{lmod0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}} \DecValTok{1}\NormalTok{, }\AttributeTok{data =}\NormalTok{ gala[,}\SpecialCharTok{{-}}\DecValTok{2}\NormalTok{])}
+\FunctionTok{anova}\NormalTok{(lmod0,lmod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Model 1: Species ~ 1
+## Model 2: Species ~ Area + Elevation + Nearest + Scruz + Adjacent
+##   Res.Df    RSS Df Sum of Sq      F    Pr(>F)    
+## 1     29 381081                                  
+## 2     24  89231  5    291850 15.699 6.838e-07 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+En el caso de que el contraste de modelos se haga con una única
+restricción, es decir q = 1, el test F es equivalente al test t, ya que
+F = t2.
+
+Por ejemplo, el contraste de la hipótesis βArea = 0 se puede resolver
+con un contraste de modelos.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{lmod }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }\AttributeTok{data=}\NormalTok{gala[,}\SpecialCharTok{{-}}\DecValTok{2}\NormalTok{])}
+\NormalTok{lmod0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Elevation }\SpecialCharTok{+}\NormalTok{ Nearest }\SpecialCharTok{+}\NormalTok{ Scruz }\SpecialCharTok{+}\NormalTok{ Adjacent,}
+\AttributeTok{data =}\NormalTok{ gala[,}\SpecialCharTok{{-}}\DecValTok{2}\NormalTok{])}
+\FunctionTok{anova}\NormalTok{(lmod0,lmod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Model 1: Species ~ Elevation + Nearest + Scruz + Adjacent
+## Model 2: Species ~ Area + Elevation + Nearest + Scruz + Adjacent
+##   Res.Df   RSS Df Sum of Sq      F Pr(>F)
+## 1     25 93469                           
+## 2     24 89231  1    4237.7 1.1398 0.2963
+\end{verbatim}
+
+Observemos que el p-valor es el mismo que obtuvimos con el estadístico t
+y además t2 = F.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ss }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(lmod)}
+\NormalTok{sum.lmod}\SpecialCharTok{$}\NormalTok{coef[}\DecValTok{2}\NormalTok{,}\DecValTok{4}\NormalTok{] }\CommentTok{\# p{-}valor}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.296318
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sum.lmod}\SpecialCharTok{$}\NormalTok{coef[}\DecValTok{2}\NormalTok{,}\DecValTok{3}\NormalTok{]}\SpecialCharTok{\^{}}\DecValTok{2} \CommentTok{\# t\^{}2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 1.139792
+\end{verbatim}
+
+Otra hipótesis que se puede resolver como un contraste de modelos es H0
+:βArea = βAdjacent. Si los dos coeficientes son iguales, podemos
+considerar que son uno solo y sumar las dos variables.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{lmod0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}} \FunctionTok{I}\NormalTok{(Area }\SpecialCharTok{+}\NormalTok{ Adjacent) }\SpecialCharTok{+}\NormalTok{ Elevation }\SpecialCharTok{+}\NormalTok{ Nearest }\SpecialCharTok{+}
+\NormalTok{Scruz, }\AttributeTok{data =}\NormalTok{ gala[,}\SpecialCharTok{{-}}\DecValTok{2}\NormalTok{])}
+\FunctionTok{anova}\NormalTok{(lmod0, lmod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Model 1: Species ~ I(Area + Adjacent) + Elevation + Nearest + Scruz
+## Model 2: Species ~ Area + Elevation + Nearest + Scruz + Adjacent
+##   Res.Df    RSS Df Sum of Sq     F  Pr(>F)  
+## 1     25 109591                             
+## 2     24  89231  1     20360 5.476 0.02793 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+En este caso, rechazamos la hipótesis considerada.
+
+Una hipótesis del tipo H0 : βElevation = 0.5 también se puede contrastar
+así
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{lmod0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Species }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Area }\SpecialCharTok{+} \FunctionTok{offset}\NormalTok{(}\FloatTok{0.5} \SpecialCharTok{*}\NormalTok{ Elevation) }\SpecialCharTok{+}\NormalTok{ Nearest }\SpecialCharTok{+}
+\NormalTok{Scruz }\SpecialCharTok{+}\NormalTok{ Adjacent, }\AttributeTok{data =}\NormalTok{ gala[,}\SpecialCharTok{{-}}\DecValTok{2}\NormalTok{])}
+\FunctionTok{anova}\NormalTok{(lmod0, lmod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Model 1: Species ~ Area + offset(0.5 * Elevation) + Nearest + Scruz + 
+##     Adjacent
+## Model 2: Species ~ Area + Elevation + Nearest + Scruz + Adjacent
+##   Res.Df    RSS Df Sum of Sq      F   Pr(>F)   
+## 1     25 131312                                
+## 2     24  89231  1     42081 11.318 0.002574 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+En este caso también rechazamos la hipótesis considerada.
+
+\hypertarget{ejemplo-crossover-modulo-3-pdf}{%
+\subsection{Ejemplo crossover (modulo 3
+pdf)}\label{ejemplo-crossover-modulo-3-pdf}}
+
+En el diseño crossover la principal hipótesis H0 : α = β se puede
+contrastar con un test F. Observemos que si los dos efectos son iguales,
+el parámetro común es el mismo en las cuatro situaciones experimentales
+y se confunde con la media general μ.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{y }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{17}\NormalTok{,}\DecValTok{34}\NormalTok{,}\DecValTok{26}\NormalTok{,}\DecValTok{10}\NormalTok{,}\DecValTok{19}\NormalTok{,}\DecValTok{17}\NormalTok{,}\DecValTok{8}\NormalTok{,}\DecValTok{16}\NormalTok{,}\DecValTok{13}\NormalTok{,}\DecValTok{11}\NormalTok{,}
+       \DecValTok{17}\NormalTok{,}\DecValTok{41}\NormalTok{,}\DecValTok{26}\NormalTok{,}\DecValTok{3}\NormalTok{,}\SpecialCharTok{{-}}\DecValTok{6}\NormalTok{,}\SpecialCharTok{{-}}\DecValTok{4}\NormalTok{,}\DecValTok{11}\NormalTok{,}\DecValTok{16}\NormalTok{,}\DecValTok{16}\NormalTok{,}\DecValTok{4}\NormalTok{,}
+       \DecValTok{21}\NormalTok{,}\DecValTok{20}\NormalTok{,}\DecValTok{11}\NormalTok{,}\DecValTok{26}\NormalTok{,}\DecValTok{42}\NormalTok{,}\DecValTok{28}\NormalTok{,}\DecValTok{3}\NormalTok{,}\DecValTok{3}\NormalTok{,}\DecValTok{16}\NormalTok{,}\SpecialCharTok{{-}}\DecValTok{10}\NormalTok{,}
+       \DecValTok{10}\NormalTok{,}\DecValTok{24}\NormalTok{,}\DecValTok{32}\NormalTok{,}\DecValTok{26}\NormalTok{,}\DecValTok{52}\NormalTok{,}\DecValTok{28}\NormalTok{,}\DecValTok{27}\NormalTok{,}\DecValTok{28}\NormalTok{,}\DecValTok{21}\NormalTok{,}\DecValTok{42}\NormalTok{)}
+
+\NormalTok{n }\OtherTok{\textless{}{-}} \FunctionTok{length}\NormalTok{(y)}
+\CommentTok{\# Cuatro columnas de la matriz de diseño}
+\NormalTok{mu }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{40}\NormalTok{)}
+\NormalTok{alpha }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{))}
+\NormalTok{beta }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{))}
+\NormalTok{gamma }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{10}\NormalTok{),}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{10}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cmod }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(mu }\SpecialCharTok{\textasciitilde{}}\NormalTok{ alpha }\SpecialCharTok{+}\NormalTok{ beta }\SpecialCharTok{+}\NormalTok{ gamma)}
+\NormalTok{cmod0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(mu }\SpecialCharTok{\textasciitilde{}}\NormalTok{ gamma)}
+\FunctionTok{anova}\NormalTok{(cmod0,cmod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Model 1: mu ~ gamma
+## Model 2: mu ~ alpha + beta + gamma
+##   Res.Df        RSS Df  Sum of Sq  F Pr(>F)
+## 1     38 5.6675e-29                        
+## 2     37 5.5183e-29  1 1.4914e-30  1 0.3238
+\end{verbatim}
+
+\hypertarget{diseuxf1o-cross-over-simplificado-video}{%
+\subsubsection{Diseño cross-over simplificado
+(video)}\label{diseuxf1o-cross-over-simplificado-video}}
+
+L ahipotesis principal es que alfa = beta. Como se trata de una unica
+FPE, tenemos que q = 1 y se puede usar t de Student (otra vez todo a
+mano). Mucho mejor como contraste de modelos.
+
+En principio, el modelo general (g) tiene mu, alfa, beta y gamma.En
+principio este modelo g tiene mu porque es la columna de los 1 del
+principio, que siempre está en el lm.
+
+El modelo de la hipotesis nula, si es cierta es que: La H0: alpha =
+beta.
+
+Si alfa es igual a beta la primera y la segunda columna se pueden unir
+porque le parametro alfa e sigual a beta y solo hay uno. Si las unimos o
+sumamos quedaria una columna de unos, que es igual a la mu. (Mirara la
+Xr de diseño crossover simplificado).
+
+La XR era:
+
+mu = 1111 alfa = 1001 beta = 0110 gamma = 0101
+
+alfa + beta = mu
+
+La metriz de la hipotesis nula solo tendrá dso columnas entonces mu'=
+1111 gamma = 0101
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Modelo lineal con mu}
+\NormalTok{g }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ alpha }\SpecialCharTok{+}\NormalTok{ beta }\SpecialCharTok{+}\NormalTok{ gamma)}
+\NormalTok{g0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{  gamma)}
+
+\CommentTok{\# Test F:}
+\FunctionTok{anova}\NormalTok{(g0, g)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Model 1: y ~ gamma
+## Model 2: y ~ alpha + beta + gamma
+##   Res.Df    RSS Df Sum of Sq      F  Pr(>F)  
+## 1     38 6931.2                              
+## 2     37 6147.9  1    783.23 4.7137 0.03641 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+El resultado es una f de 4,71 el p valor es 0,036 y efectivamente el
+resultado es el mismo que daba con la forma manual. Es decir la t de
+estudent al cuadrado
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Cálculo manual con G inversa}
+\FunctionTok{library}\NormalTok{(MASS)}
+\NormalTok{X }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\FunctionTok{c}\NormalTok{(mu, alpha, beta, gamma), }\AttributeTok{ncol=}\DecValTok{4}\NormalTok{)}
+\NormalTok{r }\OtherTok{\textless{}{-}} \FunctionTok{qr}\NormalTok{(X)}\SpecialCharTok{$}\NormalTok{rank}
+\NormalTok{XtX }\OtherTok{\textless{}{-}} \FunctionTok{crossprod}\NormalTok{(X) }\CommentTok{\# X crtapuesta de X}
+\NormalTok{XtXinv }\OtherTok{\textless{}{-}} \FunctionTok{ginv}\NormalTok{(XtX) }\CommentTok{\# G inversa}
+\NormalTok{param }\OtherTok{\textless{}{-}}\NormalTok{ XtXinv }\SpecialCharTok{\%*\%} \FunctionTok{crossprod}\NormalTok{(X, y)}
+\NormalTok{a }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{, }\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{, }\DecValTok{0}\NormalTok{)}
+\NormalTok{est }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(a) }\SpecialCharTok{\%*\%}\NormalTok{ param }\CommentTok{\#}
+\NormalTok{residuos }\OtherTok{\textless{}{-}}\NormalTok{ y }\SpecialCharTok{{-}}\NormalTok{ X }\SpecialCharTok{\%*\%}\NormalTok{ param}
+\NormalTok{MSE }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{(residuos}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}\SpecialCharTok{/}\NormalTok{(n}\SpecialCharTok{{-}}\NormalTok{r) }\CommentTok{\# El mean square error, la estimación de sigma cuadrado}
+\NormalTok{ee.est }\OtherTok{\textless{}{-}} \FunctionTok{sqrt}\NormalTok{(MSE }\SpecialCharTok{*} \FunctionTok{t}\NormalTok{(a) }\SpecialCharTok{\%*\%}\NormalTok{ XtXinv }\SpecialCharTok{\%*\%}\NormalTok{ a)}
+\NormalTok{t.est }\OtherTok{\textless{}{-}}\NormalTok{ est}\SpecialCharTok{/}\NormalTok{ee.est }\CommentTok{\# divido el estimador entre el error estandar}
+\NormalTok{t.est}\SpecialCharTok{\^{}}\DecValTok{2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##          [,1]
+## [1,] 4.713676
+\end{verbatim}
+
+Rechazamos la igualdad entre los doas fármacos.
+
+\hypertarget{resumen}{%
+\section{Resumen:}\label{resumen}}
+
+Mejor expresar los modelos aunque sean parametricos con el testF que con
+t de Stdent
+
+\end{document}

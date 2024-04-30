@@ -1,0 +1,281 @@
+---
+title: "Actividad 3: Inferencia"
+author: "María Sánchez Paniagua"
+date: "2024-04-2"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(faraway)
+library(ellipse)
+```
+
+# Ejercicios del libro de Faraway
+
+### 1. (Ejercicio 1 cap. 3 pág. 48)
+For the prostate data, fit a model with lpsa as the response and the other variables as predictors:
+
+**(a)** Compute 90 and 95% CIs for the parameter associated with age. Using just these intervals, what could we have deduced about the p-value for age in the regression summary?
+
+```{r}
+library(faraway)
+data(prostate)
+
+model <- lm(lpsa ~ ., data = prostate)
+summary(model)
+confint(model, c("age"), .95)
+confint(model, c("age"), .90)
+```
+
+El p-valor con una significancia del 5% es del 0,08229, por lo que según este, no es significativa a este nivel.
+
+Por otro lado, el 0 se encuentra en el intervalo de confianza del 95% pero no al 90%. Por lo que en el caso del 95% no es signfocativamente diferente de 0.
+
+**(b)** Compute and display a 95% joint confidence region for the parameters associated with age
+and lbph. Plot the origin on this display. The location of the origin on the display tells us the
+outcome of a certain hypothesis test. State that test and its outcome.
+
+```{r}
+#coef(model)
+plot(ellipse(model, c("age", "lbph"), level = 0.95), type = "l", col = "blue")
+points(0, 0, pch = 1, col = "red")
+
+abline(v= confint(model)['age',], lty = 2)
+abline(h= confint(model)['lbph',], lty = 2)
+```
+
+
+
+La hipótesis nula podría ser *Ho: edad = lbph = 0*, pues el origen hace referencia a que ambos valores deberían ser 0.
+
+Como el punto (0,0) está dentro de la elipse, indica que no hay evidencia para rechazar la hipótesis nula, ya que el valor cero para age y pbph están en el intervalo de confianza de la elipse.
+
+(c) In the text, we made a permutation test corresponding to the F-test for the significance of all
+the predictors. Execute the permutation test corresponding to the t-test for age in this model.
+(Hint: summary(g)$coef[4,3] gets you the t-statistic you need if the model is called g.)
+
+```{r}
+t_statistic <- summary(model)$coef["age", "t value"]
+p_value <- 2 * pt(abs(t_statistic), df = length(model$residuals) - length(model$coef), lower.tail = FALSE)
+p_value # Valor real
+```
+
+```{r}
+set.seed(13)
+t_value <- summary(model)$coefficients['age', 't value'] #summary(g)$coef[4,3]
+
+
+permute_tmod <- function(nsim) {
+  results <- numeric(nsim)  # Vector para almacenar los resultados
+  
+  for (i in 1:nsim) {
+    mod_perm <- lm(sample(lpsa) ~ ., data = prostate) 
+    results[i] <- summary(mod_perm)$coefficients['age', 't value']  # Obtengo el valor t y lo vpy guardando en un vector
+    }
+  return(results)  # Devolver los resultados
+}
+
+mean(abs(permute_tmod(100)) > abs(t_value))
+mean(abs(permute_tmod(500)) > abs(t_value))
+mean(abs(permute_tmod(1000)) > abs(t_value))
+mean(abs(permute_tmod(10000)) > abs(t_value))
+```
+
+Mediante el test de permutaciones se puede ver que se va acercando la valor real del estadístico.
+
+
+**(d)** Remove all the predictors that are not significant at the 5% level. Test this model against the
+original model. Which model is preferred?
+
+```{r}
+summary(model)
+modelo0 <- update(model, . ~ lcavol + lweight + svi)
+anova(model, modelo0)
+```
+
+Este nuevo modelo no es mejor que el anterior.
+
+### 2. (Ejercicio 2 cap. 3 pág. 49)
+Thirty samples of cheddar cheese were analyzed for their content of acetic acid, hydrogen sulfide
+and lactic acid. Each sample was tasted and scored by a panel of judges and the average taste score
+produced. Use the cheddar data to answer the following:
+
+
+**(a)** Fit a regression model with taste as the response and the three chemical contents as predictors.
+Identify the predictors that are statistically significant at the 5% level.
+
+```{r}
+library(faraway)
+data(cheddar)
+model_cheddar <- lm(taste ~ Acetic + H2S + Lactic, data = cheddar)
+summary(model_cheddar)
+```
+
+Las variables 'H2S' y 'Lactic' son estadísticamente significativas al 5%.
+
+
+**(b)** Acetic and H2S are measured on a log scale. Fit a linear model where all three predictors are
+measured on their original scale. Identify the predictors that are statistically significant at the
+5% level for this model.
+
+```{r}
+model_cheddar_original <- lm(taste ~ exp(Acetic) + exp(H2S) + Lactic, data = cheddar)
+summary(model_cheddar_original)
+```
+
+En este caso, Lactic es el único predictor que es estadísticamente significativo al 5%.
+
+(c) Can we use an F-test to compare these two models? Explain. Which model provides a better
+fit to the data? Explain your reasoning.
+
+```{r}
+anova(model_cheddar, model_cheddar_original)
+```
+
+
+En este caso, el estadístico F es de 585.2 y el valor p es 0. Por tanto,  hay una diferencia significativa entre dos modelos. 
+
+Para decidir cuál de los dos modelos ajusta mejor los datos hay que fijarse en el R cuadrado ajustado y el error estándar residual.
+
+
+```{r}
+summary(model_cheddar)
+summary(model_cheddar_original)
+```
+
+El modelo con las variables originales tiene un R cuadrado ajustado más alto y un error estándar residual más bajo, es decir, mejor ajuste del modelo a los datos.
+
+**(d)** If H2S is increased 0.01 for the model used in (a), what change in the taste would be expected?
+
+```{r}
+H2S_2 <- 0.01
+coef_H2S <- coef(model_cheddar)["H2S"]
+(taste_change <- coef_H2S * H2S_2)
+```
+
+
+
+
+**(e)** What is the percentage change in H2S on the original scale corresponding to an additive increase
+of 0.01 on the (natural) log scale?
+
+```{r}
+exp(H2S_2) - 1 # Paso a la escala original 
+```
+
+
+## 3. (Ejercicio 3 cap. 3 pág. 49)
+Using the teengamb data, fit a model with gamble as the response and the other variables as
+predictors.
+
+(a) Which variables are statistically significant at the 5% level?
+
+```{r}
+library(faraway)
+data(teengamb)
+model_teengamb <- lm(gamble ~ sex + status + income + verbal + gamble, data = teengamb)
+summary(model_teengamb)
+```
+
+La variables significativas al 5% son sex e income.
+
+(b) What interpretation should be given to the coefficient for sex?
+
+Al tener un valor negativo (-22), indica que los individuos de género femenino tienden a tener un gasto en juegos de azar menor.
+
+(c) Fit a model with just income as a predictor and use an F-test to compare it to the full model.
+
+```{r}
+model_income <- lm(gamble ~ income, data = teengamb)
+anova(model_income, model_teengamb)
+```
+
+En este caso, la diferencia entre los dos modelos es estadísticamente significativa con un valor p de 0.01177. Esto sugiere que al menos uno de los predictores adicionales en el Modelo 2 (además de 'income') contribuye a la variabilidad de la variable de respuesta.
+
+Por lo tanto, podemos concluir que el Modelo 2 tiene un mejor ajuste.
+
+### 4. (Ejercicio 4 cap. 3 pág. 49)
+Using the sat data:
+
+(a) Fit a model with total sat score as the response and expend, ratio and salary as predictors.
+
+Test the hypothesis that salary = 0. 
+
+Test the hypothesis that salary = ratio = expend = 0.
+
+Do any of these predictors have an effect on the response?
+
+```{r}
+library(faraway)
+data(sat)
+model_sat <- lm(total ~ expend + ratio + salary , data= sat)
+summary(model_sat)
+```
+
+El p-valor para la variable salary es 0.0667, por lo que no se puede rechazar la hipótesis nula h0: salary = 0. Por otro lado, el p-vaor del modelo general es 1.29e-12, por lo que el modelo es significativo y por tanto se rechaza la ho: salary = ratio = expend = 0.
+
+
+(b) Now add takers to the model. Test the hypothesis that takers = 0. Compare this model to
+the previous one using an F-test. Demonstrate that the F-test and t-test here are equivalent.
+
+```{r}
+model_sat_t <- lm(total ~ expend + ratio + salary+ takers , data= sat)
+
+anova(model_sat_t, model_sat) #Primero la hipótesis nula
+```
+
+El p-valor es de 2.607e-16, lo que significa que la diferencia es significativa, por lo que ha hipótesis nula (takers = 0) se rechaza.
+
+A continuación voy a demostrar que el F-valor es una generalización del t-valor:
+
+
+```{r}
+# Estadístico t
+t_stat <- summary(model_sat_t)$coefficients['takers', 't value']
+t_stat^2
+
+
+# Estadístico f
+f_est <- anova(model_sat, model_sat_t)[2, 'F']
+f_est
+```
+
+Como se observa, el valor al cuadrado del estadístico t es igual al estadístico F.
+
+#Otros ejercicios
+
+###1. 
+
+En los ejemplos 5.3.2 y 5.6.3 del libro de Carmona y con los datos del diseño cross-over simplificado
+considerar el modelo en el que el efecto de la interacción es distinto cuando primero se administra
+el tratamiento a y a continuación el tratamiento b, que cuando se hace al revés. Es decir, hay dos
+parámetros distintos: ab y ba.
+Contrastar en ese modelo la hipótesis H0 : ab = ba.
+Comprobar primero que es una hipótesis contrastable.
+
+
+```{r}
+y<-c(17,34,26,10,19,17,8,16,13,11,
+17,41,26,3,-6,-4,11,16,16,4,
+21,20,11,26,42,28,3,3,16,-10,
+10,24,32,26,52,28,27,28,21,42)
+
+alpha<-c(rep(1,10),rep(0,10),rep(0,10),rep(1,10))
+beta<-c(rep(0,10),rep(1,10),rep(1,10),rep(0,10))
+gamma1<-c(rep(0,10),rep(1,10),rep(0,10),rep(0,10))
+gamma2<-c(rep(0,10),rep(0,10),rep(0,10),rep(1,10))
+gammasum <- c(rep(0,10),rep(1,10),rep(0,10),rep(1,10))
+
+lm0<-lm(y~alpha+beta+gammasum) #Modelo de la hipótesis nula 
+lm1<-lm(y~alpha+beta+gamma1+gamma2)
+
+contraste <- anova(lm0, lm1)
+contraste[2, 'Pr(>F)']
+contraste
+
+```
+
+El p valor obtenido, 0.05605847 indica que no se puede rechazar la hipótesis nula y por lo tanto, no hay diferencias entre los dos modelos (no importa el orden de administración de los fármacos).
+
+
