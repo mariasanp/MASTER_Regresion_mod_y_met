@@ -1,0 +1,804 @@
+---
+title: "<br> <br> <br> Modelos lineales <br> Ejercicios de la unidad 4<br> Diagnosis del modelo"
+author: "Pere López Brosa, Alex Sanchez y Francesc Carmona"
+date: "7 de Abril de 2018"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+require(knitr)
+# include this code chunk as-is to set options
+opts_chunk$set(comment = NA, prompt = TRUE, tidy = FALSE, 
+               fig.width = 7, fig.height = 7,echo = TRUE, 
+               message = FALSE, warning = FALSE, cache=FALSE)
+Sys.setlocale("LC_TIME", "C")
+```
+
+```{r paquetes, include=FALSE}
+if(!(require(faraway))) install.packages("faraway")
+if(!(require(devtools))) install.packages("devtools")
+if(!(require(printr))) {
+  install.packages(
+    'printr',
+    type = 'source',
+    repos = c('http://yihui.name/xran', 'http://cran.rstudio.com')
+  )
+}
+```
+
+
+```{r, echo=FALSE}
+htmltools::img(src = knitr::image_uri( "logo_uoc_petit.png"), 
+               alt = 'logo UOC', 
+               style = 'position:absolute; top:0; right:0; padding:10px;')
+htmltools::img(src = knitr::image_uri( "logo_ub_petit.png"), 
+               alt = 'logo UB', 
+               style = 'position:absolute; top:0; left:0; padding:10px;')
+```
+
+# Faraway. Capítulo 6.
+
+## Problema 6.1. pág. 97
+**Using the `sat` dataset, fit a model with the `total` SAT score as the response and `expend`, `salary`, `ratio` and `takers` as predictors. Perform regression diagnostics on this model to answer the following questions. Display any plots that are relevant. Do not provide any plots about which you have nothing to say. Suggest possible improvements or corrections to the model where appropriate.**
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+if (!require(faraway)) {
+  install.packages("faraway")
+  require(faraway)
+}
+```
+
+```{r}
+data(sat,package="faraway")
+head(sat)
+model <- lm(total~expend+ratio+salary+takers, data=sat)
+sumary(model)
+```
+
+### a) Varianza constante
+**Check the constant variance assumption for the errors.**
+
+Representamos los valores absolutos de los residuos porque ahora no estamos interesados en la estructura del modelo (esto será en el último apartado) sino en la magnitud de la varianza.
+
+```{r}
+plot(fitted(model),abs(residuals(model)),xlab="Predict values",ylab="|Residuals|")
+```
+
+No hay indicios de que la varianza de los errores dependa del valor ajustado. Aunque no es necesario, podemos comprobarlo también ajustando una recta a los valores absolutos de los residuos (o sus raíces cuadradas) y los valores predichos.
+
+```{r}
+sumary(lm(sqrt(abs(residuals(model)))~fitted(model)))
+```
+
+El $p$-valor de la pendiente obtenido ($> 0.05$) indica que no hemos encontrado una relación significativa.
+
+###b) Normalidad
+**Check the normality assumption.**
+
+
+```{r}
+qqnorm(residuals(model),ylab="Residuals")
+qqline(residuals(model))
+```
+```{r}
+shapiro.test(residuals(model))
+```
+
+No vemos que la distribución de los residuos se aparte mucho de la normal. Incluso uno de los contrastes específicos tampoco encuentra una diferencia significativa.
+
+###c) Leverage
+**Check for large leverage points.**
+
+Calculamos el *leverage* de cada observación y mostramos los mayores:
+
+```{r}
+hatv <- hatvalues(model)
+head(sort(hatv,decreasing=T))
+```
+
+El valor medio de los *leverages* es $p/n$ (con $p$ el número de parámetros y $n$ el número de observaciones) y como referencia podemos considerar anómalas las observacions con *leverages* del doble de este valor ($0.2$ para este modelo).
+
+```{r}
+p <- length(model$coefficients) # k+1
+n <- length(model$fitted.values)
+leverage.mean <- p/n # (k+1)/n
+which(hatv > 2*leverage.mean)
+plot(hatv, type="h")
+abline(h=2*leverage.mean, col="red")
+```
+
+Para identificar los valores más grandes también podemos representar los *leverages* contra los cuantiles de una distribución seminormal. Para poder etiquetar las observaciones creamos un vector con el nombre de los estados que utilizaremos en los siguientes apartados.
+
+```{r}
+estados <- row.names(sat)
+halfnorm(hatv,labs=estados,nlab = 4,ylab="Leverage")
+```
+
+Las observaciones con *leverages* unusualmente grandes son las de Utah y California, seguidas de Connecticut y Nueva Jersey.
+
+### d) Valores atípicos (outliers)
+**Check for outliers.**
+
+Buscamos los estados con un mayor residuo studentizado externamente (*jackknife residual*).
+
+```{r}
+stud <- rstudent(model)
+head(sort(abs(stud),decreasing=TRUE))
+```
+
+Dado que la distribución de estos residuos es una $t$ de Student con $n-p-1=50-5-1=44$ grados de libertad, podemos utilizar el criterio naíf de considerar outlier todo residuo con valor absoluto superior a $2$.
+```{r}
+which(abs(stud)>2)
+plot(stud, type="h")
+abline(h=-2, col="red"); abline(h=0); abline(h=2, col="red")
+```
+
+O ser más sofisticados y considerar el valor crítico de la $t$ de Student y la corrección de Bonferroni para comparaciones múltiples.
+```{r}
+grlib <- n-p-1
+which(abs(stud) > abs(qt(0.05/(2*n),grlib)))
+```
+
+Vemos que con este último criterio todos los residuos quedan por debajo del valor crítico y que no hallamos ningún valor atípico. Queda la duda de si puede haber grupos de valores atípicos que no hayamos sabido encontrar.
+
+###e) Observaciones influyentes
+**Check for influential points.**
+
+Calculamos la distancia de Cook como medida de la influencia de los puntos y la representamos contra los cuartiles de una distribución seminormal.
+
+```{r}
+cook <- cooks.distance(model)
+halfnorm(cook,nlab=3,labs=estados,ylab="Distancia de Cook")
+```
+
+En el siguiente gráfico se muestra un criterio de selección:
+```{r}
+# Cook's D plot
+# identify D values > 4/(n-k-1)
+plot(model, which=4)
+abline(h=4/((n-p-2)), col="red")
+```
+
+Vemos que la observación de mayor influencia es la del estado de Utah, y con una diferencia importante respecto a los demás, lo que no resulta sorprendente porque ya habíamos visto que es el estado con mas leverage y, a pesar de no haberlo considerado una observación atípica, también es el estado con un residuo jackknife mayor.
+
+###f) Estructura de la relación predictores-respuesta
+**Check the structure of the relationship between the predictors and the response.**
+
+Podemos comprobar también si la distribución de los errores depende de los predictores. El único que presenta señales de anomalías es la variable `takers`:
+
+```{r}
+plot(sat$takers,residuals(model),xlab="takers",ylab="residuals")
+```
+
+Vemos que los residuos tienden a ser mayores para los valores no intermedios de `takers` y menores para los intermedios. Esto puede ser un indicio de no linealidad. Como la forma del diagrama de dispersión de los errores sugiere una parábola intentamos añadir al modelo un término `takers^2`:
+
+```{r}
+model2 <- lm(total~expend+ratio+salary+takers+I(takers^2),data=sat)
+sumary(model2)
+```
+
+Comprobamos que el ajuste ha mejorado y que el termino `takers^2` es significativo.
+
+## Problema 6.2. pág. 97
+**Using the `teengamb` dataset, fit a model with `gamble` as the response and the other variables as predictors. Answer the questions posed in the previous question.**
+
+Podéis ver en el problema 6.1. comentarios detallados sobre los procedimientos. Para evitar repeticiones aquí comentaremos tan sólo las diferencias con el problema 6.1 y los resultados.
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+```{r}
+data(teengamb,package="faraway")
+head(teengamb)
+model <- lm(gamble~.,data=teengamb)
+sumary(model)
+```
+
+###a) Varianza constante
+
+```{r}
+plot(fitted(model),abs(residuals(model)),xlab="Predict values",ylab="|Residuals|")
+sumary(lm(sqrt(abs(residuals(model)))~fitted(model)))
+```
+
+En el gráfico se aprecian residuos más dispersos hacia las observaciones con valores predichos más grandes, con un par de valores muy grandes en esta zona (sobre todo uno), y la regresión de la raíz cuadrada de los errores respecto al valor predicho muestra una dependencia significativa. Podría ser útil plantearnos una transformación de los datos.
+
+Listamos los residuos más grandes (en valor absoluto), y nos fijamos en la observación número 24, ya que la volveremos a encontrar unos apartados más abajo (apartado d, valores atípicos y e, observaciones influyentes).
+
+```{r}
+head(residuals(model)[order(abs(residuals(model)),decreasing=TRUE)])
+```
+
+### b) Normalidad
+```{r}
+qqnorm(residuals(model),ylab="Residus")
+qqline(residuals(model))
+shapiro.test(residuals(model))
+```
+
+La distribución se aparta de la normal en las colas, que son más largas, sobre todo en la cola de la derecha, lo que concuerda con el hecho de haber visto en el apartado anterior un par de residuos inusualmente grandes. El test de normalidad lo confirma.
+
+### c) Leverage
+
+Calculamos el leverage de cada observación y mostramos los mayores:
+```{r}
+hatv <- hatvalues(model)
+head(sort(hatv,decreasing=T))
+```
+
+Comparamos con el leverage medio $p/n$:
+
+```{r}
+p <- length(model$coefficients) # k+1
+n <- length(model$fitted.values)
+leverage.mean <- p/n # (k+1)/n
+which(hatv > 2*leverage.mean)
+```
+
+```{r}
+plot(hatv, type="h")
+abline(h=2*leverage.mean, col="red")
+```
+
+Dado que tenemos unos cuantos valores por encima de 2 veces la media los examinamos más detalladamente:
+
+```{r}
+halfnorm(hatv,nlab=4,ylab="Leverage")
+```
+
+Los gráficos nos confirman la conclusión de la tabla anterior con cuatro valores notablemente por encima de la media.
+
+### d) Valores atípicos (outliers)
+
+Buscamos las observaciones con un mayor residuo jackknife.
+
+```{r}
+stud <- rstudent(model)
+head(sort(abs(stud),decreasing=TRUE))
+which(abs(stud)>2)
+```
+
+```{r}
+plot(stud, type="h")
+abline(h=-2, col="red"); abline(h=0); abline(h=2, col="red")
+```
+
+*Aplicando la corrección de Bonferroni para comparaciones múltiples el valor crítico será:*
+
+```{r}
+which(abs(stud) > abs(qt(0.05/(2*n),df=n-p-1)))
+```
+
+Tenemos una observación bastante por encima del valor crítico (observación 24). De manera nada sorprendente este valor atípico es la misma observación que habíamos detectado con un residuo muy grande en el primer apartado.
+
+###e) Observaciones influeynts
+**Check for influential points.**
+
+Calculamos la distancia de Cook como medida de la influencia de los puntos y la representamos contra los cuartiles de una distribución seminormal.
+
+```{r}
+cook <- cooks.distance(model)
+halfnorm(cook,nlab=3,ylab="Distancia de Cook")
+```
+
+Nos volvemos a encontrar con la observación 24, excepcionalmente influyente. Para comprobar cómo afecta el modelo, la ajustamos de nuevo sin esta observación:
+```{r}
+model24 <- lm(gamble~.,data=teengamb[-24,])
+sumary(model24)
+```
+
+*Comparamos con el modelo original:*
+```{r}
+sumary(model)
+```
+
+Vemos que ignorar esta observación produce un cambio importante en los parámetros.
+
+###f) Estructura del modelo
+```{r}
+plot(fitted(model),residuals(model),xlab="Predict values",ylab="Residuals")
+```
+
+La observación de los residuos representados con los valores ajustados no da señales de inadecuación del modelo. Observarlos con cada uno de los predictores continuos (`verbal`, `income` y `status`, no representados aquí), tampoco.
+
+## Problema 6.3. pág. 97
+**For the `prostate` data, fit a model with `lpsa` as the response and the other variables as predictors. Answer the questions posed in the first question.**
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+```{r}
+data(prostate,package="faraway")
+head(prostate)
+model<-lm(lpsa~.,data=prostate)
+sumary(model)
+```
+
+### a) Varianza constante
+
+```{r}
+plot(fitted(model),abs(residuals(model)),xlab="Predict values",ylab="|Residuals|")
+sumary(lm(sqrt(abs(residuals(model)))~fitted(model)))
+```
+
+No encontramos indicios de no homogeneidad de la varianza.
+
+### b) Normalidad
+```{r}
+qqnorm(residuals(model),ylab="Residus")
+qqline(residuals(model))
+shapiro.test(residuals(model))
+```
+
+Hay una cierta desviación respecto a la normal, con las colas algo alargadas.
+
+### c) Leverage
+
+Calculamos el leverage de cada observación y mostramos los mayores:
+
+```{r}
+hatv <- hatvalues(model)
+head(sort(hatv,decreasing=T))
+```
+
+Comparamos con dos veces el leverage medio $p/n$:
+
+```{r}
+p <- length(model$coefficients) # k+1
+n <- length(model$fitted.values)
+which(hatv > 2*p/n)
+plot(hatv, type="h")
+abline(h=2*p/n, col="red")
+```
+
+El grafico nos confirma la conclusión de la tabla, con bastantes valores por encima del doble de la media.
+
+### d) Valores atípicos (outliers)
+
+Buscamos las observaciones con un mayor residuo jackknife.
+
+```{r}
+stud <- rstudent(model)
+head(sort(abs(stud),decreasing=TRUE))
+which(abs(stud)>2)
+```
+
+```{r}
+plot(stud, type="h")
+abline(h=-2, col="red"); abline(h=0); abline(h=2, col="red")
+```
+
+Aplicando la corrección de Bonferroni para comparaciones múltiples
+
+```{r}
+which(abs(stud) > abs(qt(0.05/(2*n),df=n-p-1)))
+```
+no tenemos ninguna observación muy por encima del valor crítico.
+
+### e) Observaciones influyentes
+**Check for influential points.**
+
+Calculamos la distancia de Cook como medida de la influencia de los puntos y la representamos contra los cuartiles de una distribución seminormal.
+
+```{r}
+cook <- cooks.distance(model)
+halfnorm(cook,nlab=3,ylab="Distancia de Cook")
+```
+
+```{r}
+# Cook's D plot
+# identify D values > 4/(n-k-1)
+plot(model, which=4)
+abline(h=4/((n-p-2)), col="red")
+```
+
+Encontramos algunos puntos bastante más influyentes que los demás. El más influyente es la observación 32, que también era el punto con más leverage, y uno de los más influyentes la observación 69, que era el valor más atípico (aunque hemos visto que no lo clasificábamos como outlier).
+
+Podemos tener una idea de cómo estas observaciones afectan el modelo, la ajustamos de nuevo sin la observación 32:
+```{r}
+model32 <- lm(lpsa~.,data=prostate[-32,])
+sumary(model32)
+```
+Comparamos con el modelo original:
+```{r}
+model$call
+sumary(model)
+```
+Vemos que ignorar esta observación produce un cambio importante en los parámetros aunque sin ser  dramático.
+
+### f) Estructura del modelo
+```{r}
+plot(fitted(model),residuals(model),xlab="Predict values",ylab="Residuals")
+```
+
+La observación de los residuos representados con los valores ajustados no da señales de inadecuación del modelo. Observarlos con cada uno de los predictores tampoco:
+
+```{r}
+for (i in 3:8) {
+  plot(prostate[,i],residuals(model),xlab=colnames(prostate)[i],ylab="residuals")
+}
+```
+
+## Problema 6.4. pag. 97
+**For the `swiss` data, fit a model with `Fertility` as the response and the other variables as predictors. Answer the questions posed in the first question.**
+
+Este dataset que no habíamos usado en este curso hasta ahora relaciona el índice de fertilidad en 47 provincias suizas de habla francesa hacia el 1888 con diferentes variables socioeconómicas. Se puede encontrar información sobre el significado de las variables en 
+[su página de ayuda](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/swiss.html).
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+```{r}
+data(swiss,package="datasets")
+head(swiss)
+model <- lm(Fertility~.,data=swiss)
+sumary(model)
+```
+
+### a) Varianza constante
+
+```{r}
+plot(fitted(model),abs(residuals(model)),xlab="Predicted values",ylab="|Residuals|")
+sumary(lm(sqrt(abs(residuals(model)))~fitted(model)))
+```
+
+No encontramos indicios de heterocedasticidad.
+
+### b) Normalidad
+```{r}
+qqnorm(residuals(model),ylab="Residuals")
+qqline(residuals(model))
+shapiro.test(residuals(model))
+```
+
+No encontramos indicios de falta de normalidad.
+
+### c) Leverage
+
+Calculamos el leverage de cada observación y mostramos los mayores:
+```{r}
+hatv <- hatvalues(model)
+head(sort(hatv,decreasing=T))
+```
+
+Comparamos con el doble del leverage medio $p/n$:
+
+```{r}
+p <- length(model$coefficients) # k+1
+n <- length(model$fitted.values)
+which(hatv > 2*p/n)
+plot(hatv, type="h")
+abline(h=2*p/n, col="red")
+```
+
+Dado que tenemos dos valores por encima del *cutoff*, los observamos detalladamente representándolos en un gráfico.
+
+```{r}
+halfnorm(hatv,nlab=2,labs=row.names(swiss),ylab="Leverage")
+abline(h=2*p/n, col="red")
+```
+
+Destacan la ciudad de Ginebra y el distrito de La Vallée con leverages muy por encima de las demás provincias.
+
+### d) Valores atípicos (outliers)
+
+Buscamos las observaciones con un mayor residuo jackknife.
+
+```{r}
+stud <- rstudent(model)
+head(sort(abs(stud),decreasing=TRUE))
+which(abs(stud)>2)
+plot(stud, type="h")
+abline(h=-2, col="red"); abline(h=0); abline(h=2, col="red")
+```
+
+Aplicando la corrección de Bonferroni para comparaciones múltiples:
+```{r}
+which(abs(stud) > abs(qt(0.05/(2*n),df=n-p-1)))
+```
+No tenemos ninguna observación por encima del valor crítico.
+
+### e) Observaciones influyentes
+**Check for influential points.**
+
+Calculamos la distancia de Cook como medida de la influencia de los puntos.
+
+```{r}
+cook <- cooks.distance(model)
+halfnorm(cook,nlab=3,labs=row.names(swiss),ylab="Distancia de Cook")
+```
+
+```{r}
+plot(model, which=4)
+abline(h=4/((n-p-2)), col="red")
+```
+
+
+Encontramos tres puntos bastante más influyentes que los otros, pero menos exageradamente que lo que hemos encontrado en otros problemas, probablemente debido a que en este dataset no coinciden los valores más atípicos con los puntos con más leverage.
+
+### f) Estructura del modelo
+```{r}
+plot(fitted(model),residuals(model),xlab="Predicted values",ylab="Residuals")
+```
+
+La observación de los residuos representados con los valores ajustados no da señales de inadecuación del modelo. Observarlos con cada uno de los predictores tampoco.
+
+```{r}
+for (i in 2:6){
+  plot(swiss[,i],residuals(model),xlab=colnames(swiss)[i],ylab="Residuals")
+}
+```
+
+## Problema 6.5. pag. 97
+**Using the `cheddar` data, fit a model with `taste` as the response and the other three variables as predictors. Answer the questions posed in the first question.**
+
+Ver la solución del problema 6.1 para más detalles sobre lo que hacemos en éste.
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+```{r}
+data(cheddar,package="faraway")
+datos <- cheddar
+head(datos)
+model <- lm(taste~.,data=datos)
+sumary(model)
+```
+
+### a) Varianza constante
+
+```{r}
+plot(fitted(model),abs(residuals(model)),xlab="Predicted values",ylab="|Residuals|")
+sumary(lm(sqrt(abs(residuals(model)))~fitted(model)))
+```
+
+No encontramos indicios de heterocedasticidad.
+
+### b) Normalidad
+```{r}
+qqnorm(residuals(model),ylab="Residuals")
+qqline(residuals(model))
+shapiro.test(residuals(model))
+```
+
+No encontramos falta de normalidad.
+
+### c) Leverage
+
+Calculamos el leverage de cada observación y mostramos las mayores:
+```{r}
+hatv <- hatvalues(model)
+head(sort(hatv,decreasing=T))
+```
+
+*Comparamos con el leverage medio $p/n$:*
+
+```{r}
+p <- length(model$coefficients) # k+1
+n <- length(model$fitted.values)
+which(hatv > 2*p/n)
+plot(hatv, type="h")
+abline(h=2*p/n, col="red")
+```
+
+No hay valores por encima del doble de la media.
+
+```{r}
+halfnorm(hatv,nlab=3,labs=row.names(datos),ylab="Leverage")
+abline(h=2*p/n, col="red")
+```
+
+### d) Valors atípicos (outliers)
+
+Buscamos las observaciones con un mayor residuo jackknife.
+```{r}
+stud <- rstudent(model)
+head(sort(abs(stud),decreasing=TRUE))
+which(abs(stud)>2)
+plot(stud, type="h")
+abline(h=-2, col="red"); abline(h=0); abline(h=2, col="red")
+```
+
+Aplicando la corrección de Bonferroni para comparaciones múltiples:
+```{r}
+which(abs(stud) > abs(qt(0.05/(2*n),df=n-p-1)))
+```
+No tenemos ninguna observación por encima del valor crítico.
+
+### e) Observacions influyentes
+
+**Check for influential points.**
+
+Calculamos la distancia de Cook como medida de la influencia de los puntos y la representamos contra los cuartiles de una distribución seminormal.
+
+```{r}
+cook <- cooks.distance(model)
+halfnorm(cook,nlab=3,labs=row.names(datos),ylab="Distancia de Cook")
+plot(model, which=4)
+abline(h=4/((n-p-2)), col="red")
+```
+
+Únicamente la observación 15 es influyente.
+
+### f) Estructura del modelo
+```{r}
+plot(fitted(model),residuals(model),xlab="Predicted values",ylab="Residuals")
+```
+
+La observación de los residuos representados con los valores ajustados no da señales de inadecuación del modelo. Observarlos con cada uno de los predictores tampoco.
+
+```{r}
+for (i in 2:4){
+  plot(datos[,i],residuals(model),xlab=colnames(cheddar)[i],ylab="residuals")
+}
+```
+
+# Faraway. Capítulo 7.
+
+## Problema 7.3. pág. 110
+
+**Using the `divusa` data: **
+
+En este problema tratamos con datos de divorcios en los Estados Unidos de 1920 a 1966.
+
+### a) Números de condición
+**Fit a regression model with `divorce` as the response and `unemployed`, `femlab`, `marriage`, `birth` and `military` as predictors. Compute the condition numbers and interpret their meanings.**
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+```{r}
+data(divusa,package="faraway")
+dades <- divusa
+head(dades)
+model <- lm(divorce~unemployed+femlab+marriage+birth+military,data=dades)
+sumary(model)
+cor(divusa[,3:7])
+```
+De momento, no parece que haya signos de colinealidad en las relaciones dos a dos de las variables predictoras.
+
+```{r}
+X <- model.matrix(model)
+XtX <- t(X) %*% X
+e <- eigen(XtX)
+e$val
+sqrt(e$val[1]/e$val)
+```
+Problema serio: hay un número de condición muy superior a 30.
+
+### b) Factores de Inflación de la Varianza (VIFs)
+**For the same model, compute the VIFs. Is there evidence that collinearity causes some predictors not to be significant? Explain.**
+
+```{r}
+vif(X[,-1])   # vif(model)
+```
+
+Los factores de inflación de la varianza son bajos de manera que parece que el problema de multicolinealidad no es muy grave. 
+
+### c) Eliminación de predictores no significativos
+**Does the removal of insignificant predictors from the model reduce the collinearity? Investigate.**
+
+Probamos el modelo sin las predictoras menos significativas `unemployed` y `military`.
+
+```{r}
+model2 <- update(model, .~.-unemployed-military)
+sumary(model2)
+X <- model.matrix(model2)
+e <- eigen(t(X) %*% X)
+e$val
+sqrt(e$val[1]/e$val)
+vif(model2)
+```
+
+Vemos que eliminar las predictores no significativas mejora un poco los números de condición y los factores de inflación de la varianza, pero el problema persiste.
+
+## Problema 7.4. pág. 110
+**For the `longley` data, fit a model with `Employed` as the response and the other variables as predictors.**
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r}
+data(longley)
+datos <- longley
+head(datos)
+model <- lm(Employed~.,data=datos[,-6])
+sumary(model)
+```
+
+### a) Números de condición
+**Compute and comment on the condition numbers.**
+
+```{r}
+X <- model.matrix(model)
+XtX <- t(X) %*% X
+e <- eigen(XtX)
+e$val
+sqrt(e$val[1]/e$val)
+```
+
+Aparecen números de condición muy altos, que concuerdan bastante con el hecho de tener algunos parámetros muy lejos de ser significativos con un $R^2$ muy alto. Claramente tenemos un problema de multicolinealidad.
+
+### b) Correlación
+**Compute and comment on the correlations between the predictors.**
+
+```{r}
+cor(datos[,1:5])
+```
+
+Algunas predictores están altamente correlacionados entre sí, con algunas correlaciones superiores a $0.9$.
+
+### c) Factores de Inflación de la Varianza (VIFs)
+**Compute the variance inflation factors.**
+
+```{r}
+vif(model)
+```
+
+Como era de esperar de las comprobaciones anteriores, obtenemos factores de inflación de la varianza muy altos.
+
+## Problema 7.5. pag. 110
+
+**For the `prostate` data, fit a model with `lpsa` as the response and the other variables as predictors.**
+
+Cargamos los datos y ajustamos el modelo.
+
+```{r, message=FALSE,warning=FALSE}
+require(faraway)
+```
+```{r}
+data(prostate,package="faraway")
+datos <- prostate
+head(datos)
+model <- lm(lpsa~.,data=datos)
+sumary(model)
+```
+
+### a) Números de condición
+**Compute and comment on the condition numbers.**
+
+```{r}
+X <- model.matrix(model)
+show(round(XtX <- t(X) %*% X,1))
+e <- eigen(XtX)
+round(e$val, 3)
+round(sqrt(e$val[1]/e$val),3)
+```
+
+Aparecen algunos números de condición muy altos lo que muestra un problema de multicolinealidad.
+
+###b) Correlación
+**Compute and comment on the correlations between the predictors.**
+
+```{r}
+cor(datos[-9])
+```
+
+Algunas predictoras están correlacionados con otras, aunque no con valores de correlación altísimos. Destaca `gleason`  que tiene correlaciones altas con alguna otra predictora y a la vez es el predictor menos significativo del modelo.
+
+### c) Factores de Inflación de la Varianza (VIFs)
+**Compute the variance inflation factors.**
+
+```{r}
+vif(model)
+```
+Obtenemos factores de inflación de la varianza moderados.
+
+
+

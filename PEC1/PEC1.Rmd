@@ -2,12 +2,53 @@
 title: "PEC1"
 author: "María Sánchez Paniagua"
 date: "2024-04-23"
-output: html_document
+output:
+  prettydoc::html_pretty:
+    theme: tactile
+    highlight: vignette
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    #code_folding: hide
+    bibliography: ADOreferences.bib
+    editor_options: 
+      #chunk_output_type: console
+      chunk_output_type: inline
+
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(max.print="60")
+
+library(knitr)
+library(lmtest)
+library(nortest)
+library(car)
+library(MASS)
+
+opts_chunk$set(echo=TRUE,
+	             cache=FALSE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+
+
+
+
+#palette <- brewer.pal(n = 20, name = "Set2")
 ```
+
+
+# Soluciones de otras actividades:
+
+https://aula.uoc.edu/courses/36506/assignments/407649?module_item_id=1390767
+
+https://fhernanb.github.io/libro_regresion/diag2.html
+
 
 # Ejercicio 1
 
@@ -39,17 +80,28 @@ incluir más variables para explicar la varianza de sysBP.
 Nota: Se recomienda eliminar las observaciones con valores faltantes (missings).
 
 ```{r}
-# Cargar datos y eliminar valores faltantes)
-data_framingham <- read.csv("C:/Users/Usuario/Desktop/Máster/Asignaturas/Regresión Modelos y Métodos/PEC1/framingham.csv")
+# Cargar datos y eliminar valores faltantes
+data_framingham <- read.csv("C:/Users/Usuario/GitHub/MASTER_Regresion_mod_y_met/PEC1/framingham.csv")
 data_framingham <- na.omit(data_framingham)
+head(data_framingham)
 
 # Primer modelo de regresión lineal
 lmod_inicial <- lm(sysBP ~ BMI + male + BMI:male, data = data_framingham)
 
 # Ver el resumen del modelo
 summary(lmod_inicial)
+```
 
+Todos los coeficientes (incluso el de la relación de las dos variebles) son menores de 0,05 por lo que son significativos. El intercepto negativo indica que el efecto de del BMI en la presión sistólica es menor que en mujeres.
 
+El valor de R-cuadrado ajustado es de 0,11 por lo que es bastante bajo, explica poca variabilidad por lo que sería interesante añadir más variables.
+
+Además, el modelo como tal también es significativo, ya que el valor de p del estadístico F es muy bajo.
+
+A continuación estos serán los gráficos del modelo:
+
+```{r}
+plot(lmod_inicial)
 ```
 
 
@@ -58,10 +110,10 @@ del apartado anterior.
 
 ```{r}
 with(data_framingham, {
-  plot(BMI, sysBP, col = ifelse(male == 1, "blue", "red"), xlab = "Índice de Masa Corporal (BMI)", ylab = "Presión Sanguínea Sistólica (sysBP)", main = "Regresión de sysBP sobre BMI por Sexo")
-  legend("topright", legend = c("Hombres", "Mujeres"), col = c("blue", "red"), pch = 16)
-  abline(lm(sysBP ~ BMI, data = data_framingham, subset = male == 0), col = "red")
-  abline(lm(sysBP ~ BMI, data = data_framingham, subset = male == 1), col = "blue")
+  plot(BMI, sysBP, col = ifelse(male == 1, "orange", "hotpink"), xlab = "Índice de Masa Corporal (BMI)", ylab = "Presión Sanguínea Sistólica (sysBP)", main = "Regresión de sysBP sobre BMI por Sexo")
+  legend("topright", legend = c("Hombres", "Mujeres"), col = c("orange", "hotpink"), pch = 16)
+  abline(lm(sysBP ~ BMI, data = data_framingham, subset = male == 0), col = "hotpink")
+  abline(lm(sysBP ~ BMI, data = data_framingham, subset = male == 1), col = "orange")
 })
 
 ```
@@ -79,7 +131,7 @@ sigma_squared <- sum(residuals(lmod_inicial)^2) / lmod_inicial$df.residual
 sigma_squared
 
 ```
-
+Los intervalos de confianza para la variable BMI es (74.137826, 87.7444529), los de sexo (1.787986,  2.3130589) y los de la interacción (-1.197452, -0.2543371).
 
 (d) Además de las variables contempladas anteriormente, se cree que hay otras variables clínicas y
 demográficas que predicen linealmente la presión arterial sistólica como son la edad, el colesterol
@@ -89,6 +141,9 @@ sysBP y BMI puede depender del sexo.
 Estimar un modelo de regresión lineal múltiple lmod_ampliado para predecir sysBP que tenga como
 variables predictoras: BMI, age, sexo, totChol, heartRate, currentSmoker, cigsPerDay, diabetes,
 glucose y la interacción BMI con sexo.
+
+
+
 ¿Es significativo el modelo obtenido? Plantear la hipótesis nula y la alternativa del test. ¿Qué test
 estadístico se emplea para contestar a esta pregunta?
 Explicar el resultado del coeficiente de la regresora cigsPerDay y su significación en el contexto de
@@ -96,20 +151,22 @@ este modelo.
 
 
 ```{r}
-# Modelo ampliado con más variables y una interacción
 lmod_ampliado <- lm(sysBP ~ BMI + age + male + totChol + heartRate + currentSmoker + cigsPerDay + diabetes + glucose + BMI:male, data = data_framingham)
 
 # Resumen del modelo ampliado
 summary(lmod_ampliado)
-
-# Realizar un test ANOVA 
-anova(lmod_inicial, lmod_ampliado)
-
 ```
-
+Para conocer la significación del modelo realizamos un ANOVA. 
 La hipótesis nula sería que no hay relación lineal significativa entre las variables predictoras y la presión arterial sistólica (sysBP). La hipótesis alternativa sería que al menos una de las variables predictoras tiene una relación lineal significativa con sysBP.
 
-Respectoa la significación, el valor de p del estadístico F es prácticamente cero, lo que indica que el modelo en su conjunto es significativo. El estadóstico F del ANOVA nos permite comprobar la significancia del modelo completo. El F valor tan pequeño indica que hay una diferencia significativa entre los dos modelos.
+```{r}
+anova(lmod_inicial, lmod_ampliado)
+```
+
+
+Respecto a la significación, el valor de p del estadístico F es prácticamente cero, lo que indica que el modelo en su conjunto es significativo. El estadóstico F del ANOVA nos permite comprobar la significancia del modelo completo. El F valor tan pequeño indica que hay una diferencia significativa entre los dos modelos.
+
+Respecto a la variable cigsPerDar, el valor de 0.045974 sugiere que, en promedio, un aumento de un cigarrillo por día se asocia con un aumento de aproximadamente 0.046 unidades en la presión arterial sistólica, aunque este efecto no es estadísticamente significativo.
 
 (e) Contrastar si nos podemos quedar con el modelo más reducido que no tiene en cuenta las variables
 regresoras: currentSmoker, cigsPerDay y diabetes. Escribir en forma paramétrica las hipótesis del
@@ -119,8 +176,6 @@ estas variables.
 ```{r}
 # Modelo reducido excluyendo 'currentSmoker', 'cigsPerDay', y 'diabetes'
 lmod_reducido <- lm(sysBP ~ BMI + age + male + totChol + heartRate + glucose + BMI:male, data = data_framingham)
-
-# Resumen del modelo reducido
 summary(lmod_reducido)
 
 # Test ANOVA para comparar el modelo reducido y el ampliado
@@ -136,40 +191,112 @@ Las hipótesis son:
 Según el ANOVA a ambos modelos no hay diferencias significativas y por tanto podemos obviar esas variables del modelo.
 
 
-(f) Con el modelo elegido, calcular un intervalo de predicción al 95% de un individuo con los siguientes
-valores de la variables predictoras: BMI=29, age=64, male=0, totChol=200, heartRate=70,
+(f) Con el modelo elegido, calcular un intervalo de predicción al 95% de un individuo con los siguientes valores de la variables predictoras: BMI=29, age=64, male=0, totChol=200, heartRate=70,
 glucose=96. Comprobar previamente que los valores observados no suponen una extrapolación.
 Para ello utilizaremos el elipsoide que se forma con el leverage máximo.
 
+Lo intento hacer con el chell
 
 ```{r}
-# Calcular leverage máximo
-max_leverage <- max(hatvalues(lmod_reducido))
+data_framingham
+# Obtener los valores ajustados por el modelo
+fitted_values <- predict(lmod_reducido)
+
+# Calcular el chull de los valores ajustados
+chull_points <- chull(fitted_values)
+
+# Verificar si los valores ajustados caen fuera del chull
+if (length(chull_points) < length(fitted_values)) {
+  warning("Extrapolación potencial: Algunos valores ajustados están fuera del chull.")
+} else {
+  print("No hay extraploación potencial: Todos los valores ajustados están dentro del chull.")
+}
+
+# Visualizar elipsoide de leverage máximo
+plot(fitted_values, pch = 16, col = "blue", main = "Envolvente convexo de los valores ajustados")
+polygon(c(fitted_values[chull_points], rev(fitted_values[chull_points])), c(rep(min(fitted_values), length(chull_points)), rep(max(fitted_values), length(chull_points))), col = "lightblue", border = NA)
+
+```
+
+La fórmula para calcular el leverage (\( h_i \)) de un punto en un modelo de regresión lineal es:
+
+\[ h_i = x_i^T (X^T X)^{-1} x_i \]
+
+Donde:
+
+- \( x_i \) es el vector de predictores para el i-ésimo punto.
+- \( X \) es la matriz de diseño (matriz de predictores) del conjunto de datos.
+
+Para calcular el leverage en R, puedes utilizar la siguiente función:
+
+```{r}
+datos <- data_framingham[, c("BMI", "age", "male", "totChol", "heartRate", "glucose")]
+X <- model.matrix(lmod_reducido)
+nombres_columnas <- c("BMI", "age", "male", "totChol", "heartRate", "glucose")
+nuevo_punto_df <- data.frame(Intercept = 1,BMI = 29, age = 64, male = 0, totChol = 200, heartRate = 70, glucose = 96, BMI_male = 29 * 0, stringsAsFactors = FALSE)
+nuevo_punto <- as.numeric(nuevo_punto_df)
+
+# Calculo leverage
+t <- nuevo_punto
+s <- solve(crossprod(X, X))
+leverage <- crossprod(nuevo_punto, s %*% t)
+as.numeric(leverage)
+
+
+
+```
+Lo hago con el leverage máximo:
+
+```{r}
+H<- hatvalues(lmod_reducido)
+max_leverage <- max(H)
+max_leverage
+
 
 # Verificar si los valores dados están dentro del elipsoide formado por el leverage máximo
-if (max_leverage > 0.5) {
-  warning("Extrapolación potencial: leverage máximo es mayor que 0.5")
+if (leverage > max_leverage) {
+  warning("Extrapolación potencial: leverage máximo es mayor que el del punto")
 } else {
-  print("No hay extraploación potencial: leverage máximo es menor o igual que 0.5")
+  print("No hay extraploación potencial: leverage máximo es menor o igual que el del punto")
 }
 
 
-install.packages("car")
-library(car)
-# Visualizar elipsoide de leverage máximo
-influenceIndexPlot(lmod_reducido, id = max_leverage, main = "Elipsoide de leverage máximo")
-
 ```
-
 
 ```{r}
-# Calcular intervalo de predicción para un individuo específico
-newdata <- data.frame(BMI = 29, age = 64, male = 0, totChol = 200, heartRate = 70, glucose = 96)
-
 # Usar el modelo reducido o el que se prefiera basado en análisis previos
-predict(lmod_reducido, newdata, interval = "prediction", level = 0.95)
+predict(lmod_reducido, nuevo_punto, interval = "prediction", level = 0.95)
 
 ```
+
+#**EL PROBEMA AQUI ES SYSBP**
+
+```{r}
+# Supongamos que estos son los nombres de las columnas para tu modelo y están en este orden en el DataFrame 'datos'
+
+nombres_columnas <- c("sysBP", "BMI", "age", "male", "totChol", "heartRate", "glucose")
+
+
+# Crear un DataFrame para el nuevo punto con los nombres de columnas adecuados y sin convertir en factor
+
+# Asegúrate de que el nuevo punto tiene el mismo tipo de datos que el DataFrame original
+nuevo_punto[] <- lapply(nuevo_punto, function(x) as.numeric(as.character(x)))
+
+# Añadir el nuevo punto al DataFrame original
+datos <- data_framingham[,nombres_columnas]
+datos_nuevos <- rbind(datos, nuevo_punto)
+names(datos)
+# Verificar la estructura de datos nuevos para confirmar la consistencia
+str(datos_nuevos)
+
+# Ajustar el modelo con el nuevo conjunto de datos
+modelo_nuevo <- lm(sysBP ~ BMI + age + male + totChol + heartRate + glucose, data = datos_nuevos)
+
+# Revisar el modelo para asegurar que no hay errores
+summary(modelo_nuevo)
+
+```
+
 
 
 # Ejercicio 2
@@ -193,12 +320,12 @@ par(mfrow = c(2, 2))
 plot(lmod_reducido)
 
 # Test de homocedasticidad usando el test de Breusch-Pagan y el test de White
-library(lmtest)
+
 bptest(lmod_reducido)
 
 # Test de normalidad usando el test de Shapiro-Wilk y el test de Anderson-Darling
 shapiro.test(residuals(lmod_reducido))
-library(nortest)
+
 ad.test(residuals(lmod_reducido))
 
 ```
@@ -222,7 +349,7 @@ summary(data_framingham$sysBP)
 hist(data_framingham$sysBP, breaks = 30, main = "Histograma de sysBP", xlab = "sysBP")
 
 # Transformación logarítmica sugerida
-library(MASS)
+
 sysBP <- data_framingham$sysBP
 transformed_sysBP <- logtrans(sysBP, lambda = 1)  # ajustar el valor de lambda según sea necesario
 
